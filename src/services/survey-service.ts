@@ -1,4 +1,4 @@
-import { Prisma, QuestionType, SurveyVersionStatus } from "@prisma/client";
+import { Prisma, QuestionType, SurveyQuestion, SurveyVersionStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { recordAuditLog } from "@/lib/audit";
 import {
@@ -159,7 +159,7 @@ export async function upsertQuestion(
   const normalizedConfig =
     input.config === undefined ? undefined : input.config === null ? Prisma.JsonNull : input.config;
 
-  let question;
+  let question: SurveyQuestion;
   if (version.status === SurveyVersionStatus.PUBLISHED) {
     if (input.id) {
       const existing = await prisma.surveyQuestion.findUnique({
