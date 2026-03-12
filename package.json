@@ -32,7 +32,7 @@
     "ioredis": "^5.4.2",
     "jose": "^5.9.6",
     "jsonwebtoken": "^9.0.2",
-    "next": "15.2.0",
+    "next": "15.2.8",
     "next-auth": "^5.0.0-beta.25",
     "pdfkit": "^0.15.1",
     "qrcode": "^1.5.4",
