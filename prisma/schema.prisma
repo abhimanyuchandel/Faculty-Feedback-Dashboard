@@ -1,0 +1,404 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DigestSubscriptionStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+}
+
+enum SurveyVersionStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum QuestionType {
+  LIKERT
+  MULTIPLE_CHOICE
+  MULTI_SELECT
+  NUMERIC
+  FREE_TEXT
+}
+
+enum EmailTokenType {
+  UNSUBSCRIBE
+  RESUBSCRIBE
+}
+
+enum DigestRunType {
+  AUTOMATED
+  TEST
+  PREVIEW
+}
+
+enum AuditActorType {
+  ADMIN
+  SYSTEM
+}
+
+enum FacultyEnrollmentRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+model Faculty {
+  id                        String                   @id @default(cuid())
+  firstName                 String                   @map("first_name")
+  lastName                  String                   @map("last_name")
+  primaryEmail              String                   @unique @map("primary_email")
+  secondaryEmail            String?                  @unique @map("secondary_email")
+  department                String                   @default("Department of Medicine")
+  activeStatus              Boolean                  @default(true) @map("active_status")
+  digestSubscriptionStatus  DigestSubscriptionStatus @default(SUBSCRIBED) @map("digest_subscription_status")
+  publicToken               String                   @unique @map("public_token")
+  createdAt                 DateTime                 @default(now()) @map("created_at")
+  updatedAt                 DateTime                 @updatedAt @map("updated_at")
+  deactivatedAt             DateTime?                @map("deactivated_at")
+
+  feedbackSubmissions       FeedbackSubmission[]
+  digestHistory             DigestHistory[]
+  emailTokens               EmailToken[]
+  teachingSessionFaculty    TeachingSessionFaculty[]
+  enrollmentRequests        FacultyEnrollmentRequest[] @relation("FacultyEnrollmentCreated")
+
+  @@index([lastName, firstName])
+  @@index([activeStatus, digestSubscriptionStatus])
+  @@index([firstName(ops: raw("gin_trgm_ops"))], type: Gin, map: "faculty_first_name_trgm_idx")
+  @@index([lastName(ops: raw("gin_trgm_ops"))], type: Gin, map: "faculty_last_name_trgm_idx")
+  @@index([primaryEmail(ops: raw("gin_trgm_ops"))], type: Gin, map: "faculty_primary_email_trgm_idx")
+  @@index([secondaryEmail(ops: raw("gin_trgm_ops"))], type: Gin, map: "faculty_secondary_email_trgm_idx")
+  @@map("faculty")
+}
+
+model CurriculumPhase {
+  id                  String               @id @default(cuid())
+  name                String               @unique
+  sortOrder           Int                  @default(0) @map("sort_order")
+  activeStatus        Boolean              @default(true) @map("active_status")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  feedbackSubmissions FeedbackSubmission[]
+  teachingSessions    TeachingSession[]
+
+  @@index([activeStatus, sortOrder])
+  @@map("curriculum_phases")
+}
+
+model SurveyVersion {
+  id                  String              @id @default(cuid())
+  versionNumber       Int                 @unique @map("version_number")
+  label               String
+  status              SurveyVersionStatus @default(DRAFT)
+  publishedAt         DateTime?           @map("published_at")
+  createdById         String?             @map("created_by_id")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+
+  createdBy           User?               @relation("SurveyCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  questions           SurveyQuestion[]
+  feedbackSubmissions FeedbackSubmission[]
+
+  @@index([status])
+  @@map("survey_versions")
+}
+
+model SurveyQuestion {
+  id                 String               @id @default(cuid())
+  surveyVersionId    String               @map("survey_version_id")
+  prompt             String
+  helpText           String?              @map("help_text")
+  type               QuestionType
+  required           Boolean              @default(false)
+  includeInDigest    Boolean              @default(true) @map("include_in_digest")
+  activeStatus       Boolean              @default(true) @map("active_status")
+  orderIndex         Int                  @map("order_index")
+  config             Json?
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  surveyVersion      SurveyVersion        @relation(fields: [surveyVersionId], references: [id], onDelete: Cascade)
+  options            SurveyQuestionOption[]
+  feedbackAnswers    FeedbackAnswer[]
+
+  @@unique([surveyVersionId, orderIndex])
+  @@index([surveyVersionId, activeStatus])
+  @@map("survey_questions")
+}
+
+model SurveyQuestionOption {
+  id            String         @id @default(cuid())
+  questionId    String         @map("question_id")
+  label         String
+  value         String
+  orderIndex    Int            @map("order_index")
+  activeStatus  Boolean        @default(true) @map("active_status")
+
+  question      SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, value])
+  @@unique([questionId, orderIndex])
+  @@map("survey_question_options")
+}
+
+model FeedbackSubmission {
+  id                String          @id @default(cuid())
+  facultyId         String          @map("faculty_id")
+  surveyVersionId   String          @map("survey_version_id")
+  curriculumPhaseId String          @map("curriculum_phase_id")
+  teachingSessionId String?         @map("teaching_session_id")
+  sessionLocationSnapshot String?   @map("session_location_snapshot")
+  submittedAt       DateTime        @default(now()) @map("submitted_at")
+  submissionDate    DateTime        @default(now()) @db.Date @map("submission_date")
+  digestedAt        DateTime?       @map("digested_at")
+  digestHistoryId   String?         @map("digest_history_id")
+  captchaScore      Float?          @map("captcha_score")
+
+  faculty           Faculty         @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  surveyVersion     SurveyVersion   @relation(fields: [surveyVersionId], references: [id], onDelete: Restrict)
+  curriculumPhase   CurriculumPhase @relation(fields: [curriculumPhaseId], references: [id], onDelete: Restrict)
+  teachingSession   TeachingSession? @relation(fields: [teachingSessionId], references: [id], onDelete: SetNull)
+  digestHistory     DigestHistory?  @relation(fields: [digestHistoryId], references: [id], onDelete: SetNull)
+  answers           FeedbackAnswer[]
+
+  @@index([facultyId, digestedAt])
+  @@index([curriculumPhaseId, submissionDate])
+  @@index([teachingSessionId, submissionDate])
+  @@index([surveyVersionId])
+  @@map("feedback_submissions")
+}
+
+model FeedbackAnswer {
+  id                     String         @id @default(cuid())
+  submissionId           String         @map("submission_id")
+  questionId             String?        @map("question_id")
+  questionPromptSnapshot String         @map("question_prompt_snapshot")
+  questionTypeSnapshot   QuestionType   @map("question_type_snapshot")
+  includeInDigestSnapshot Boolean       @default(true) @map("include_in_digest_snapshot")
+  answerJson             Json           @map("answer_json")
+  createdAt              DateTime       @default(now()) @map("created_at")
+
+  submission             FeedbackSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question               SurveyQuestion?    @relation(fields: [questionId], references: [id], onDelete: SetNull)
+
+  @@index([submissionId])
+  @@index([questionId])
+  @@map("feedback_answers")
+}
+
+model TeachingSession {
+  id                 String               @id @default(cuid())
+  title              String
+  curriculumPhaseId  String               @map("curriculum_phase_id")
+  sessionDate        DateTime             @db.Date @map("session_date")
+  startAt            DateTime             @map("start_at")
+  endAt              DateTime             @map("end_at")
+  location           String
+  notes              String?
+  activeStatus       Boolean              @default(true) @map("active_status")
+  archivedAt         DateTime?            @map("archived_at")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  curriculumPhase    CurriculumPhase      @relation(fields: [curriculumPhaseId], references: [id], onDelete: Restrict)
+  facultyAssignments TeachingSessionFaculty[]
+  feedbackSubmissions FeedbackSubmission[]
+
+  @@index([sessionDate, curriculumPhaseId])
+  @@index([activeStatus, sessionDate])
+  @@map("teaching_sessions")
+}
+
+model TeachingSessionFaculty {
+  teachingSessionId String         @map("teaching_session_id")
+  facultyId         String         @map("faculty_id")
+  assignedAt        DateTime       @default(now()) @map("assigned_at")
+
+  teachingSession   TeachingSession @relation(fields: [teachingSessionId], references: [id], onDelete: Cascade)
+  faculty           Faculty         @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+
+  @@id([teachingSessionId, facultyId])
+  @@map("teaching_session_faculty")
+}
+
+model DigestHistory {
+  id                     String        @id @default(cuid())
+  facultyId              String        @map("faculty_id")
+  runType                DigestRunType @default(AUTOMATED) @map("run_type")
+  sentAt                 DateTime      @default(now()) @map("sent_at")
+  windowStart            DateTime      @map("window_start")
+  windowEnd              DateTime      @map("window_end")
+  submissionCount        Int           @map("submission_count")
+  phaseSummary           Json          @map("phase_summary")
+  emailProviderMessageId String?       @map("email_provider_message_id")
+  createdByAdminId       String?       @map("created_by_admin_id")
+
+  faculty                Faculty       @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  createdByAdmin         User?         @relation("DigestCreatedBy", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  submissions            FeedbackSubmission[]
+
+  @@index([facultyId, sentAt])
+  @@map("digest_history")
+}
+
+model EmailToken {
+  id         String         @id @default(cuid())
+  facultyId  String         @map("faculty_id")
+  tokenHash  String         @unique @map("token_hash")
+  tokenType  EmailTokenType @map("token_type")
+  expiresAt  DateTime       @map("expires_at")
+  usedAt     DateTime?      @map("used_at")
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  faculty    Faculty        @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+
+  @@index([facultyId, tokenType, expiresAt])
+  @@map("email_tokens")
+}
+
+model User {
+  id                 String         @id @default(cuid())
+  email              String         @unique
+  name               String?
+  passwordHash       String?        @map("password_hash")
+  mfaEnabled         Boolean        @default(false) @map("mfa_enabled")
+  mfaSecretEncrypted String?        @map("mfa_secret_encrypted")
+  activeStatus       Boolean        @default(true) @map("active_status")
+  lastLoginAt        DateTime?      @map("last_login_at")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  accounts           Account[]
+  sessions           Session[]
+  roles              AdminUserRole[]
+  createdSurveyVersions SurveyVersion[] @relation("SurveyCreatedBy")
+  auditLogs          AuditLog[]
+  digestRuns         DigestHistory[] @relation("DigestCreatedBy")
+  reviewedEnrollmentRequests FacultyEnrollmentRequest[] @relation("FacultyEnrollmentReviewedBy")
+  passwordResetTokens AdminPasswordResetToken[]
+
+  @@map("admin_users")
+}
+
+model FacultyEnrollmentRequest {
+  id               String                       @id @default(cuid())
+  firstName        String                       @map("first_name")
+  lastName         String                       @map("last_name")
+  primaryEmail     String                       @map("primary_email")
+  secondaryEmail   String?                      @map("secondary_email")
+  notes            String?
+  status           FacultyEnrollmentRequestStatus @default(PENDING)
+  requestedAt      DateTime                     @default(now()) @map("requested_at")
+  reviewedAt       DateTime?                    @map("reviewed_at")
+  reviewedByAdminId String?                     @map("reviewed_by_admin_id")
+  createdFacultyId String?                      @map("created_faculty_id")
+  decisionNotes    String?                      @map("decision_notes")
+
+  reviewedByAdmin  User?                        @relation("FacultyEnrollmentReviewedBy", fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
+  createdFaculty   Faculty?                     @relation("FacultyEnrollmentCreated", fields: [createdFacultyId], references: [id], onDelete: SetNull)
+
+  @@index([status, requestedAt])
+  @@index([primaryEmail, status])
+  @@index([secondaryEmail, status])
+  @@map("faculty_enrollment_requests")
+}
+
+model AdminRole {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  description String?
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  users       AdminUserRole[]
+
+  @@map("admin_roles")
+}
+
+model AdminUserRole {
+  userId      String         @map("user_id")
+  roleId      String         @map("role_id")
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        AdminRole      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("admin_user_roles")
+}
+
+model AuditLog {
+  id          String         @id @default(cuid())
+  actorType   AuditActorType @default(ADMIN) @map("actor_type")
+  adminUserId String?        @map("admin_user_id")
+  action      String
+  entityType  String         @map("entity_type")
+  entityId    String?        @map("entity_id")
+  metadata    Json?
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  adminUser   User?          @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  @@index([adminUserId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("admin_accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("admin_verification_tokens")
+}
+
+model AdminPasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("admin_password_reset_tokens")
+}
