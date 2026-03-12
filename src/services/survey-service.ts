@@ -107,7 +107,11 @@ export async function updateQuestionOrder(
       return prisma.surveyQuestion.update({
         where: { id: questionId },
         data: {
-          config: setQuestionOrderForScope(existing.config, normalizedScope, index + 1)
+          config: setQuestionOrderForScope(
+            existing.config,
+            normalizedScope,
+            index + 1
+          ) as Prisma.InputJsonValue
         }
       });
     })
