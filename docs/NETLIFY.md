@@ -34,6 +34,8 @@ Set these in Netlify for both Production and Preview unless noted otherwise.
 - `NEXTAUTH_SECRET`
 - `APP_BASE_URL`
 
+`DIRECT_URL` is not required for Netlify site builds. The repo falls back to `DATABASE_URL` for Prisma client generation during CI.
+
 ### Recommended staging defaults
 
 - `EMAIL_PROVIDER=noop`
