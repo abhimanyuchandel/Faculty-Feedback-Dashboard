@@ -1,8 +1,13 @@
 .next
+.open-next
+.wrangler
 node_modules
 .env
 .env.*
 !.env.example
+.dev.vars
+.dev.vars.*
+cloudflare-env.d.ts
 coverage
 playwright-report
 test-results

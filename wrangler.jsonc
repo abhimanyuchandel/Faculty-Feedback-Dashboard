@@ -1,0 +1,48 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "faculty-feedback-dashboard",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-03-13",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "faculty-feedback-dashboard"
+    }
+  ],
+  "vars": {
+    "EMAIL_PROVIDER": "noop",
+    "DIGEST_TIMEZONE": "America/New_York",
+    "DIGEST_MIN_THRESHOLD": "4",
+    "DIGEST_MAX_AGE_DAYS": "180"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "env": {
+    "staging": {
+      "name": "faculty-feedback-dashboard-staging",
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "faculty-feedback-dashboard-staging"
+        }
+      ],
+      "vars": {
+        "EMAIL_PROVIDER": "noop",
+        "TURNSTILE_SITE_KEY": "1x00000000000000000000AA",
+        "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
+        "DIGEST_TIMEZONE": "America/New_York",
+        "DIGEST_MIN_THRESHOLD": "4",
+        "DIGEST_MAX_AGE_DAYS": "180"
+      },
+      "observability": {
+        "enabled": true
+      }
+    }
+  }
+}

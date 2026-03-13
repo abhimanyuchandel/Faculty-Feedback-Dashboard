@@ -3,8 +3,6 @@ import { badRequest, forbidden, serverError, unauthorized } from "@/lib/http";
 import { getApiAdminUser, hasAnyRole } from "@/lib/auth/api";
 import { generateSessionQrPacket } from "@/services/qr-service";
 
-export const runtime = "nodejs";
-
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const admin = await getApiAdminUser();
@@ -19,8 +17,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const { id } = await context.params;
     const format = request.nextUrl.searchParams.get("format") === "single" ? "single" : "grid";
     const pdf = await generateSessionQrPacket(id, format);
+    const body = pdf.slice().buffer as ArrayBuffer;
 
-    return new NextResponse(new Uint8Array(pdf), {
+    return new NextResponse(body, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

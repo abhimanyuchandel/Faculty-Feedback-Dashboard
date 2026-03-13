@@ -23,8 +23,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     }
 
     const png = await generateFacultyQrPngBuffer(faculty.publicToken);
+    const body = png.slice().buffer as ArrayBuffer;
 
-    return new NextResponse(new Uint8Array(png), {
+    return new NextResponse(body, {
       status: 200,
       headers: {
         "Content-Type": "image/png",
