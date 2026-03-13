@@ -103,3 +103,55 @@ For now, use one of:
 - enforce MFA for all admin users
 - monitor worker errors and failed digest runs
 - validate backup restore on the database provider
+
+## 11. Optional GitHub Actions deploy
+If you want one-click deployment for teammates:
+
+### What this uses to deploy
+This uses **GitHub Actions** to run the repository script `npm run cf:deploy`, which calls **OpenNext for Cloudflare** and deploys the worker through **Wrangler** (`opennextjs-cloudflare deploy`).
+
+In practice, deployment is:
+1. GitHub-hosted runner starts (`ubuntu-latest`).
+2. Node 20 + `npm ci` install dependencies.
+3. Action injects Cloudflare credentials from GitHub Secrets:
+   - `CLOUDFLARE_API_TOKEN`
+   - `CLOUDFLARE_ACCOUNT_ID`
+4. Action runs one of:
+   - staging: `npm run cf:deploy -- --env staging`
+   - production: `npm run cf:deploy`
+
+### Practical deployment steps
+1. In Cloudflare, create an API token with Workers deploy permissions.
+2. Copy your Cloudflare Account ID from the dashboard.
+3. In GitHub repo: **Settings -> Secrets and variables -> Actions**, add:
+   - `CLOUDFLARE_API_TOKEN`
+   - `CLOUDFLARE_ACCOUNT_ID`
+4. In Cloudflare Workers settings for your worker(s), set required app variables/secrets from Section 5 in this file (`DATABASE_URL`, `NEXTAUTH_SECRET`, `CRON_SECRET`, etc.).
+5. In GitHub: **Actions -> Deploy to Cloudflare Workers -> Run workflow**.
+6. Select `environment`:
+   - `staging` to validate with colleagues
+   - `production` when ready
+7. Open workflow logs and confirm deployment succeeded; copy the resulting `workers.dev` URL.
+8. Smoke test routes from Section 9 before sharing broadly.
+
+Workflow file: `.github/workflows/deploy-cloudflare.yml`.
+
+### Example values (what to fill)
+In **GitHub -> Settings -> Secrets and variables -> Actions -> New repository secret**:
+
+- `CLOUDFLARE_API_TOKEN`: a Cloudflare API token with at least:
+  - Account: `Cloudflare Workers Scripts:Edit`
+  - Account: `Workers KV Storage:Edit` (if used by your worker)
+  - Zone: not required for workers.dev-only deployments
+- `CLOUDFLARE_ACCOUNT_ID`: your account ID from Cloudflare dashboard sidebar.
+
+Example (redacted) values:
+- `CLOUDFLARE_API_TOKEN=3f2c9b7e1a4d...`
+- `CLOUDFLARE_ACCOUNT_ID=1a2b3c4d5e6f7g8h9i0jklmnopqrstuv`
+
+### Example run
+After adding secrets:
+1. Go to **Actions -> Deploy to Cloudflare Workers -> Run workflow**.
+2. Select `environment = staging`.
+3. Click **Run workflow**.
+4. In the job logs, copy the deployed URL (typically `https://faculty-feedback-dashboard-staging.<subdomain>.workers.dev`).
