@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db/prisma";
+import { requireAdminPageSession } from "@/lib/auth/guards";
 
 export default async function AdminHomePage() {
+  await requireAdminPageSession("/admin");
+
   const [facultyCount, activeFacultyCount, submissionCount, activeSurvey, sessionCount, pendingEnrollmentRequests] =
     await Promise.all([
     prisma.faculty.count(),

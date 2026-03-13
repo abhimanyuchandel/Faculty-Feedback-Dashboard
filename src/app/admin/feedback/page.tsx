@@ -1,5 +1,7 @@
 import { FeedbackReviewPanel } from "@/components/admin/feedback-review";
+import { requireAdminPageSession } from "@/lib/auth/guards";
 
-export default function FeedbackPage() {
+export default async function FeedbackPage() {
+  await requireAdminPageSession("/admin/feedback");
   return <FeedbackReviewPanel />;
 }

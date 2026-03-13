@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { requireAdminPageSession } from "@/lib/auth/guards";
 import { facultyFeedbackUrl } from "@/services/qr-service";
 
 type Props = {
@@ -6,6 +7,8 @@ type Props = {
 };
 
 export default async function QrAdminPage({ searchParams }: Props) {
+  await requireAdminPageSession("/admin/qr");
+
   const q = (await searchParams).q?.trim() ?? "";
 
   const faculty = await prisma.faculty.findMany({

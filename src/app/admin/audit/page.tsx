@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db/prisma";
+import { requireAdminPageSession } from "@/lib/auth/guards";
 
 export default async function AuditLogsPage() {
+  await requireAdminPageSession("/admin/audit");
+
   const logs = await prisma.auditLog.findMany({
     orderBy: { createdAt: "desc" },
     take: 200,

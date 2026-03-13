@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db/prisma";
+import { requireAdminPageSession } from "@/lib/auth/guards";
 
 export default async function DiagnosticsPage() {
+  await requireAdminPageSession("/admin/diagnostics");
+
   let dbStatus = "ok";
   let dbMessage = "Database reachable";
 
