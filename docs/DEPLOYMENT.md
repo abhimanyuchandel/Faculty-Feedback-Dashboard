@@ -12,8 +12,8 @@ Use `.env.example` as baseline:
 - `NEXTAUTH_URL`
 - `NEXTAUTH_SECRET`
 - `APP_BASE_URL`
-- `EMAIL_PROVIDER`
-- `POSTMARK_API_TOKEN` + `POSTMARK_SENDER_EMAIL` OR `SENDGRID_API_KEY`
+- `EMAIL_PROVIDER` (`noop`, `postmark`, `sendgrid`, or `resend`)
+- `POSTMARK_API_TOKEN` + `POSTMARK_SENDER_EMAIL` OR `SENDGRID_API_KEY` OR `RESEND_API_KEY` + `RESEND_FROM_EMAIL`
 - `TURNSTILE_SECRET_KEY` and `TURNSTILE_SITE_KEY`
 - `CRON_SECRET`
 - `DIGEST_TIMEZONE`, `DIGEST_MIN_THRESHOLD`, `DIGEST_MAX_AGE_DAYS`
@@ -36,6 +36,8 @@ Required header:
 - Enable seed data in staging.
 - Run smoke tests and E2E against staging URL.
 - Use digest preview in staging before production release.
+- For demo environments, set `EMAIL_PROVIDER=noop` to log email attempts without sending mail.
+- For Resend, set `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, and a verified `RESEND_FROM_EMAIL`.
 
 ## 6. Production hardening checklist
 - Enforce HTTPS and HSTS.
