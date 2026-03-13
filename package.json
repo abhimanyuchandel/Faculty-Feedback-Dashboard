@@ -21,9 +21,6 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
     "@opennextjs/cloudflare": "^1.17.1",

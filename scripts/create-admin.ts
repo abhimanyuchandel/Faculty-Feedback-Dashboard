@@ -4,11 +4,11 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = process.argv[2]?.toLowerCase();
-  const password = process.argv[3];
+  const email = process.argv[2]?.toLowerCase() ?? process.env.ADMIN_EMAIL?.toLowerCase();
+  const password = process.argv[3] ?? process.env.ADMIN_PASSWORD;
 
   if (!email || !password) {
-    throw new Error("Usage: tsx scripts/create-admin.ts <email> <password>");
+    throw new Error("Usage: tsx scripts/create-admin.ts <email> <password> or set ADMIN_EMAIL and ADMIN_PASSWORD");
   }
 
   const hash = await bcrypt.hash(password, 12);

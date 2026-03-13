@@ -15,7 +15,9 @@
 ## 3. Local setup
 1. Copy `.env.example` to `.env` and fill local values.
 2. Copy `.dev.vars.example` to `.dev.vars`.
-3. In `.env`, use your direct or session database URL for local Prisma commands.
+3. In `.env`, set:
+   - `DATABASE_URL` for local app runtime
+   - `DIRECT_URL` for Prisma CLI commands
 4. In `.dev.vars`, use your pooled worker-safe database URL.
 5. Run local app:
    - `npm run dev`
@@ -36,6 +38,7 @@ Set these in Cloudflare Workers -> your worker -> Settings -> Variables and Secr
 
 Secrets:
 - `DATABASE_URL`
+- `DIRECT_URL` if you want to run Prisma CLI commands against the same environment from a remote shell
 - `NEXTAUTH_SECRET`
 - `CRON_SECRET`
 - `POSTMARK_API_TOKEN` if using Postmark
@@ -60,7 +63,7 @@ Recommended staging defaults:
 - `TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA`
 
 ## 6. Database initialization
-Run locally against the direct or session database URL:
+Run locally against the direct or session database URL in `DIRECT_URL`:
 1. `npx prisma migrate deploy`
 2. `npm run prisma:seed`
 3. `npm run admin:create -- 'your-admin-email@yourorg.edu' 'YourStrongPassword123!'`
