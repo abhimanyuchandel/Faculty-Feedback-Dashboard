@@ -55,6 +55,7 @@ export function SurveyForm(props: Props) {
   const [selectedSessionId, setSelectedSessionId] = useState("");
   const [teachingSessionDate, setTeachingSessionDate] = useState("");
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
+  const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
   const [captchaToken, setCaptchaToken] = useState("dev-captcha-token");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -149,6 +150,10 @@ export function SurveyForm(props: Props) {
 
   function setAnswer(questionId: string, value: AnswerValue) {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
+  }
+
+  function setSearchTerm(questionId: string, value: string) {
+    setSearchTerms((prev) => ({ ...prev, [questionId]: value }));
   }
 
   function toggleMultiSelect(questionId: string, value: string) {
@@ -339,18 +344,27 @@ export function SurveyForm(props: Props) {
               <div>
                 <input
                   className="input"
-                  list={`q-search-${question.id}`}
+                  value={searchTerms[question.id] ?? ""}
+                  onChange={(event) => setSearchTerm(question.id, event.target.value)}
+                  placeholder="Search lectures by keyword"
+                />
+                <select
+                  className="select"
                   value={typeof answers[question.id] === "string" ? String(answers[question.id]) : ""}
                   onChange={(event) => setAnswer(question.id, event.target.value)}
-                  placeholder="Search by keyword and select a lecture"
-                />
-                <datalist id={`q-search-${question.id}`}>
-                  {question.options.map((option) => (
+                  style={{ marginTop: "0.5rem" }}
+                >
+                  <option value="">Select lecture</option>
+                  {filterSearchableOptions(
+                    question.options,
+                    searchTerms[question.id] ?? "",
+                    typeof answers[question.id] === "string" ? String(answers[question.id]) : ""
+                  ).map((option) => (
                     <option key={option.id} value={option.value}>
                       {option.label}
                     </option>
                   ))}
-                </datalist>
+                </select>
               </div>
             ) : (
             <div className="grid" style={{ gap: "0.4rem" }}>
@@ -421,6 +435,20 @@ function isSearchableChoiceQuestion(question: Question) {
 
   const searchable = (question.config as { searchable?: unknown }).searchable;
   return searchable === true;
+}
+
+function filterSearchableOptions(options: Option[], searchTerm: string, selectedValue: string) {
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const selectedOption = selectedValue ? options.find((option) => option.value === selectedValue) ?? null : null;
+  const filtered = normalizedSearch
+    ? options.filter((option) => option.label.toLowerCase().includes(normalizedSearch))
+    : options;
+
+  if (selectedOption && !filtered.some((option) => option.value === selectedOption.value)) {
+    return [selectedOption, ...filtered];
+  }
+
+  return filtered;
 }
 
 function isIcsOrIcrPhase(phaseName: string) {

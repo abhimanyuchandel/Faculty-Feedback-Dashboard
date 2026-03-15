@@ -86,9 +86,11 @@ export function SurveyBuilderPanel() {
     const hasCurrentSelection = selectedVersionId && nextVersions.some((version) => version.id === selectedVersionId);
 
     if (!hasCurrentSelection && nextVersions.length) {
-      const firstVersion = nextVersions[0];
-      setSelectedVersionId(firstVersion.id);
-      await loadVersion(firstVersion.id);
+      const preferredVersion =
+        nextVersions.find((version) => version.status === "PUBLISHED") ?? nextVersions[0];
+
+      setSelectedVersionId(preferredVersion.id);
+      await loadVersion(preferredVersion.id);
       return;
     }
 
