@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   extractTargetPhaseIds,
   getQuestionOrderForScope,
-  normalizeQuestionOrderScope
+  normalizeQuestionOrderScope,
+  selectQuestionSetForPhase
 } from "@/lib/survey/question-config";
 
 type QuestionType = "LIKERT" | "MULTIPLE_CHOICE" | "MULTI_SELECT" | "NUMERIC" | "FREE_TEXT";
@@ -198,17 +199,23 @@ export function SurveyBuilderPanel() {
     }
 
     const scoped = detail.questions.filter((question) => {
-      const phaseIds = extractTargetPhaseIds(question.config);
       if (questionPhaseFilter === "ALL") {
         return true;
       }
       if (questionPhaseFilter === "GLOBAL") {
+        const phaseIds = extractTargetPhaseIds(question.config);
         return phaseIds.length === 0;
       }
-      return phaseIds.includes(questionPhaseFilter);
+
+      return true;
     });
 
-    return [...scoped].sort((left, right) => {
+    const studentVisibleQuestions =
+      questionPhaseFilter !== "ALL" && questionPhaseFilter !== "GLOBAL"
+        ? selectQuestionSetForPhase(scoped, questionPhaseFilter, (question) => extractTargetPhaseIds(question.config))
+        : scoped;
+
+    return [...studentVisibleQuestions].sort((left, right) => {
       if (orderScope) {
         const scopedLeft = getQuestionOrderForScope(left.config, orderScope);
         const scopedRight = getQuestionOrderForScope(right.config, orderScope);
