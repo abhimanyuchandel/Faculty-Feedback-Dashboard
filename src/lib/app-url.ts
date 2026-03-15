@@ -54,7 +54,8 @@ export function appBaseUrl() {
   return stripTrailingSlash(env.APP_BASE_URL);
 }
 
-export function appUrl(path: string) {
+export function appUrl(path: string, baseUrl?: string) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${appBaseUrl()}${normalizedPath}`;
+  const resolvedBaseUrl = baseUrl ? stripTrailingSlash(baseUrl) : appBaseUrl();
+  return `${resolvedBaseUrl}${normalizedPath}`;
 }

@@ -270,7 +270,6 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
       facultyEmail: string;
       curriculumPhaseId: string;
       curriculumPhaseName: string;
-      location: string;
       submissionCount: number;
     }
   >();
@@ -297,8 +296,7 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
     const breakdownKey = [
       year,
       submission.faculty.id,
-      submission.curriculumPhase.id,
-      location
+      submission.curriculumPhase.id
     ].join("|");
 
     const existingBreakdown = breakdownMap.get(breakdownKey);
@@ -312,7 +310,6 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
         facultyEmail: submission.faculty.primaryEmail,
         curriculumPhaseId: submission.curriculumPhase.id,
         curriculumPhaseName: submission.curriculumPhase.name,
-        location,
         submissionCount: 1
       });
     }
@@ -331,8 +328,7 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
       (a, b) =>
         b.year - a.year ||
         a.curriculumPhaseName.localeCompare(b.curriculumPhaseName) ||
-        a.facultyName.localeCompare(b.facultyName) ||
-        a.location.localeCompare(b.location)
+        a.facultyName.localeCompare(b.facultyName)
     ),
     filters: {
       faculty: faculty.map((entry) => ({

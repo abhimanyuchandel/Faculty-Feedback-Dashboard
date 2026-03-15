@@ -22,7 +22,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       return notFound("Faculty not found");
     }
 
-    const png = await generateFacultyQrPngBuffer(faculty.publicToken);
+    const png = await generateFacultyQrPngBuffer(faculty.publicToken, request.nextUrl.origin);
     const body = png.slice().buffer as ArrayBuffer;
 
     return new NextResponse(body, {

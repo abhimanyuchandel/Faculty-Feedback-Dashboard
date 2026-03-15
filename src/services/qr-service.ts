@@ -10,20 +10,20 @@ export type QrRenderableFaculty = {
   publicToken: string;
 };
 
-export function facultyFeedbackUrl(publicToken: string): string {
-  return appUrl(`/f/${encodeURIComponent(publicToken)}`);
+export function facultyFeedbackUrl(publicToken: string, baseUrl?: string): string {
+  return appUrl(`/f/${encodeURIComponent(publicToken)}`, baseUrl);
 }
 
-export async function generateQrDataUrl(publicToken: string): Promise<string> {
-  return QRCode.toDataURL(facultyFeedbackUrl(publicToken), {
+export async function generateQrDataUrl(publicToken: string, baseUrl?: string): Promise<string> {
+  return QRCode.toDataURL(facultyFeedbackUrl(publicToken, baseUrl), {
     errorCorrectionLevel: "H",
     margin: 1,
     scale: 8
   });
 }
 
-export async function generateFacultyQrPngBuffer(publicToken: string): Promise<Uint8Array> {
-  const png = await QRCode.toBuffer(facultyFeedbackUrl(publicToken), {
+export async function generateFacultyQrPngBuffer(publicToken: string, baseUrl?: string): Promise<Uint8Array> {
+  const png = await QRCode.toBuffer(facultyFeedbackUrl(publicToken, baseUrl), {
     type: "png",
     errorCorrectionLevel: "H",
     margin: 1,
@@ -65,7 +65,8 @@ async function addCard(
   topY: number,
   cardWidth: number,
   cardHeight: number,
-  includeUrl: boolean
+  includeUrl: boolean,
+  baseUrl?: string
 ) {
   const pageHeight = page.getHeight();
   const y = pageHeight - topY - cardHeight;
@@ -113,7 +114,7 @@ async function addCard(
     drawCenteredText(
       page,
       font,
-      facultyFeedbackUrl(faculty.publicToken),
+      facultyFeedbackUrl(faculty.publicToken, baseUrl),
       x + 12,
       y + 12,
       cardWidth - 24,
@@ -127,6 +128,7 @@ export async function generateQrPacketPdf(options: {
   faculty: QrRenderableFaculty[];
   format: "single" | "grid";
   includeShortUrl?: boolean;
+  baseUrl?: string;
 }): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -135,14 +137,26 @@ export async function generateQrPacketPdf(options: {
 
   const qrCache = new Map<string, Uint8Array>();
   for (const f of options.faculty) {
-    qrCache.set(f.id, new Uint8Array(await generateFacultyQrPngBuffer(f.publicToken)));
+    qrCache.set(f.id, new Uint8Array(await generateFacultyQrPngBuffer(f.publicToken, options.baseUrl)));
   }
 
   if (options.format === "single") {
     for (let i = 0; i < options.faculty.length; i += 1) {
       const page = pdfDoc.addPage([pageWidth, pageHeight]);
       const f = options.faculty[i];
-      await addCard(pdfDoc, page, font, f, qrCache.get(f.id)!, 70, 120, 450, 620, options.includeShortUrl ?? true);
+      await addCard(
+        pdfDoc,
+        page,
+        font,
+        f,
+        qrCache.get(f.id)!,
+        70,
+        120,
+        450,
+        620,
+        options.includeShortUrl ?? true,
+        options.baseUrl
+      );
     }
   } else {
     const cols = 2;
@@ -165,14 +179,26 @@ export async function generateQrPacketPdf(options: {
       const x = margin + col * (cardWidth + gap);
       const y = margin + row * (cardHeight + gap);
       const f = options.faculty[i];
-      await addCard(pdfDoc, page, font, f, qrCache.get(f.id)!, x, y, cardWidth, cardHeight, options.includeShortUrl ?? true);
+      await addCard(
+        pdfDoc,
+        page,
+        font,
+        f,
+        qrCache.get(f.id)!,
+        x,
+        y,
+        cardWidth,
+        cardHeight,
+        options.includeShortUrl ?? true,
+        options.baseUrl
+      );
     }
   }
 
   return await pdfDoc.save();
 }
 
-export async function generateSessionQrPacket(sessionId: string, format: "single" | "grid") {
+export async function generateSessionQrPacket(sessionId: string, format: "single" | "grid", baseUrl?: string) {
   const session = await prisma.teachingSession.findUnique({
     where: { id: sessionId },
     select: {
@@ -215,6 +241,7 @@ export async function generateSessionQrPacket(sessionId: string, format: "single
   return generateQrPacketPdf({
     faculty,
     format,
-    includeShortUrl: true
+    includeShortUrl: true,
+    baseUrl
   });
 }

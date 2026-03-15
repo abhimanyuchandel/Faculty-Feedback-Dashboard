@@ -14,13 +14,11 @@ type Overview = {
     facultyEmail: string;
     curriculumPhaseId: string;
     curriculumPhaseName: string;
-    location: string;
     submissionCount: number;
   }>;
   filters: {
     faculty: Array<{ id: string; name: string; primaryEmail: string }>;
     curriculumPhases: Array<{ id: string; name: string }>;
-    locations: string[];
     years: number[];
   };
   recentSubmissions: Array<{
@@ -42,7 +40,6 @@ export function FeedbackReviewPanel() {
   const [facultyId, setFacultyId] = useState("");
   const [facultySearch, setFacultySearch] = useState("");
   const [curriculumPhaseId, setCurriculumPhaseId] = useState("");
-  const [location, setLocation] = useState("");
   const [year, setYear] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -51,12 +48,11 @@ export function FeedbackReviewPanel() {
     const params = new URLSearchParams();
     if (facultyId) params.set("facultyId", facultyId);
     if (curriculumPhaseId) params.set("curriculumPhaseId", curriculumPhaseId);
-    if (location) params.set("location", location);
     if (year) params.set("year", year);
     if (fromDate) params.set("fromDate", fromDate);
     if (toDate) params.set("toDate", toDate);
     return params.toString();
-  }, [facultyId, curriculumPhaseId, location, year, fromDate, toDate]);
+  }, [facultyId, curriculumPhaseId, year, fromDate, toDate]);
 
   const facultyOptions = useMemo(() => {
     const q = facultySearch.trim().toLowerCase();
@@ -134,17 +130,6 @@ export function FeedbackReviewPanel() {
             </select>
           </div>
           <div>
-            <label className="label">Location</label>
-            <select className="select" value={location} onChange={(event) => setLocation(event.target.value)}>
-              <option value="">All locations</option>
-              {(data?.filters.locations ?? []).map((entry) => (
-                <option key={entry} value={entry}>
-                  {entry}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
             <label className="label">Year received</label>
             <select className="select" value={year} onChange={(event) => setYear(event.target.value)}>
               <option value="">All years</option>
@@ -207,7 +192,7 @@ export function FeedbackReviewPanel() {
       </div>
 
       <div className="card">
-        <h2>Report Breakdown (Phase/Faculty/Location/Year)</h2>
+        <h2>Report Breakdown (Phase/Faculty/Year)</h2>
         {loading || !data ? (
           <p>Loading...</p>
         ) : (
@@ -217,20 +202,18 @@ export function FeedbackReviewPanel() {
                 <th>Year</th>
                 <th>Phase</th>
                 <th>Faculty</th>
-                <th>Location</th>
                 <th>Submissions</th>
               </tr>
             </thead>
             <tbody>
               {data.breakdown.map((row) => (
-                <tr key={`${row.year}-${row.facultyId}-${row.curriculumPhaseId}-${row.location}`}>
+                <tr key={`${row.year}-${row.facultyId}-${row.curriculumPhaseId}`}>
                   <td>{row.year}</td>
                   <td>{row.curriculumPhaseName}</td>
                   <td>
                     {row.facultyName}
                     <div className="muted">{row.facultyEmail}</div>
                   </td>
-                  <td>{row.location}</td>
                   <td>{row.submissionCount}</td>
                 </tr>
               ))}

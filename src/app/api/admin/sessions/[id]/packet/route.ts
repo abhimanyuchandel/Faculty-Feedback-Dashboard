@@ -16,7 +16,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 
     const { id } = await context.params;
     const format = request.nextUrl.searchParams.get("format") === "single" ? "single" : "grid";
-    const pdf = await generateSessionQrPacket(id, format);
+    const pdf = await generateSessionQrPacket(id, format, request.nextUrl.origin);
     const body = pdf.slice().buffer as ArrayBuffer;
 
     return new NextResponse(body, {

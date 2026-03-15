@@ -8,7 +8,10 @@ export function LogoutButton() {
       type="button"
       className="btn ghost"
       onClick={() => {
-        void signOut({ callbackUrl: "/" });
+        void (async () => {
+          await signOut({ redirect: false });
+          window.location.assign("/search");
+        })();
       }}
     >
       Sign out
