@@ -1,7 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/db/prisma";
-import { env } from "@/lib/env";
+import { appUrl } from "@/lib/app-url";
 
 export type QrRenderableFaculty = {
   id: string;
@@ -11,7 +11,7 @@ export type QrRenderableFaculty = {
 };
 
 export function facultyFeedbackUrl(publicToken: string): string {
-  return `${env.APP_BASE_URL}/f/${publicToken}`;
+  return appUrl(`/f/${encodeURIComponent(publicToken)}`);
 }
 
 export async function generateQrDataUrl(publicToken: string): Promise<string> {

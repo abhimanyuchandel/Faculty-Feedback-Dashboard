@@ -44,6 +44,7 @@ type Props = {
     label: string;
   }>;
   questions: Question[];
+  captchaConfigured: boolean;
 };
 
 type AnswerValue = string | number | string[] | null;
@@ -385,18 +386,24 @@ export function SurveyForm(props: Props) {
         </div>
       ))}
 
-      <div style={{ marginBottom: "1rem" }}>
-        <label className="label" htmlFor="captcha-token">
-          CAPTCHA token (dev placeholder)
-        </label>
-        <input
-          id="captcha-token"
-          className="input"
-          value={captchaToken}
-          onChange={(event) => setCaptchaToken(event.target.value)}
-          required
-        />
-      </div>
+      {props.captchaConfigured ? (
+        <div style={{ marginBottom: "1rem" }}>
+          <label className="label" htmlFor="captcha-token">
+            CAPTCHA token
+          </label>
+          <input
+            id="captcha-token"
+            className="input"
+            value={captchaToken}
+            onChange={(event) => setCaptchaToken(event.target.value)}
+            required
+          />
+        </div>
+      ) : (
+        <div className="alert warn" style={{ marginBottom: "1rem" }}>
+          CAPTCHA protection is currently disabled for this testing environment.
+        </div>
+      )}
 
       {error ? <div className="alert error">{error}</div> : null}
 

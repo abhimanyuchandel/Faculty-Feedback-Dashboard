@@ -19,8 +19,13 @@ export async function GET(request: NextRequest) {
     const activeOnly = request.nextUrl.searchParams.get("activeOnly") === "true";
     const take = Number(request.nextUrl.searchParams.get("take") ?? 100);
     const skip = Number(request.nextUrl.searchParams.get("skip") ?? 0);
+    const q = request.nextUrl.searchParams.get("q")?.trim() ?? undefined;
+    const sortBy =
+      request.nextUrl.searchParams.get("sortBy") === "sessionFrequency"
+        ? "sessionFrequency"
+        : "alphabetical";
 
-    const faculty = await listFaculty({ activeOnly, take, skip });
+    const faculty = await listFaculty({ activeOnly, take, skip, q, sortBy });
     return ok({ faculty });
   } catch (error) {
     console.error(error);

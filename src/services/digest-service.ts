@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { subDays } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
+import { appUrl } from "@/lib/app-url";
 import { env } from "@/lib/env";
 import { sendTransactionalEmail } from "@/lib/email/provider";
 import { generateOpaqueToken, hashToken } from "@/lib/security";
@@ -39,7 +40,7 @@ type DigestPayload = {
 
 const DIGEST_MIN_THRESHOLD = env.DIGEST_MIN_THRESHOLD;
 const DIGEST_MAX_AGE_DAYS = env.DIGEST_MAX_AGE_DAYS;
-const ENROLL_COLLEAGUE_URL = `${env.APP_BASE_URL}/enroll`;
+const ENROLL_COLLEAGUE_URL = appUrl("/enroll");
 
 function monthYearLabel(date: Date): string {
   return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
@@ -421,8 +422,8 @@ export async function sendDigestForFaculty(facultyId: string, opts?: { runType?:
     generateQrDataUrl(payload.publicToken)
   ]);
 
-  const unsubscribeUrl = `${env.APP_BASE_URL}/api/digest/unsubscribe?token=${unsubscribeToken}`;
-  const resubscribeUrl = `${env.APP_BASE_URL}/api/digest/resubscribe?token=${resubscribeToken}`;
+  const unsubscribeUrl = appUrl(`/api/digest/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`);
+  const resubscribeUrl = appUrl(`/api/digest/resubscribe?token=${encodeURIComponent(resubscribeToken)}`);
 
   const subject = `Department of Medicine feedback digest (${payload.totalResponses} new responses)`;
   const html = digestEmailHtml(payload, unsubscribeUrl, resubscribeUrl, qrDataUrl);
@@ -497,8 +498,8 @@ export async function previewDigestForFaculty(facultyId: string) {
     return null;
   }
 
-  const unsubscribeUrl = `${env.APP_BASE_URL}/digest/unsubscribe/preview`;
-  const resubscribeUrl = `${env.APP_BASE_URL}/digest/resubscribe/preview`;
+  const unsubscribeUrl = appUrl("/digest/unsubscribe/preview");
+  const resubscribeUrl = appUrl("/digest/resubscribe/preview");
   const qrDataUrl = await generateQrDataUrl(payload.publicToken);
 
   return {

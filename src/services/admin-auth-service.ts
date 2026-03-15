@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { AuditActorType } from "@prisma/client";
+import { appUrl } from "@/lib/app-url";
 import { prisma } from "@/lib/db/prisma";
-import { env } from "@/lib/env";
 import { sendTransactionalEmail } from "@/lib/email/provider";
 import { generateOpaqueToken, hashToken } from "@/lib/security";
 import { recordAuditLog } from "@/lib/audit";
@@ -60,7 +60,7 @@ export async function requestAdminPasswordReset(emailInput: string) {
     }
   });
 
-  const resetUrl = `${env.APP_BASE_URL}/admin/reset-password?token=${encodeURIComponent(rawToken)}`;
+  const resetUrl = appUrl(`/admin/reset-password?token=${encodeURIComponent(rawToken)}`);
 
   await sendTransactionalEmail({
     to: user.email,

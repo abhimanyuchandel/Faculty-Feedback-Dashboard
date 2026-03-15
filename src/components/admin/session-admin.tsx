@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type SessionRow = {
   id: string;
@@ -21,6 +21,7 @@ export function SessionAdminPanel() {
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [phases, setPhases] = useState<Phase[]>([]);
   const [faculty, setFaculty] = useState<Faculty[]>([]);
+  const [facultyLookup, setFacultyLookup] = useState<Record<string, Faculty>>({});
 
   const [title, setTitle] = useState("");
   const [curriculumPhaseId, setCurriculumPhaseId] = useState("");
@@ -32,25 +33,57 @@ export function SessionAdminPanel() {
   const [includeArchived, setIncludeArchived] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  async function load() {
-    const [sessionsRes, phasesRes, facultyRes] = await Promise.all([
+  const loadSessionsAndPhases = useCallback(async () => {
+    const [sessionsRes, phasesRes] = await Promise.all([
       fetch(`/api/admin/sessions?includeArchived=${includeArchived ? "true" : "false"}`),
-      fetch("/api/admin/curriculum-phases"),
-      fetch("/api/admin/faculty?activeOnly=true&take=2000")
+      fetch("/api/admin/curriculum-phases")
     ]);
 
     const sessionsJson = (await sessionsRes.json()) as { sessions: SessionRow[] };
     const phasesJson = (await phasesRes.json()) as { curriculumPhases: Phase[] };
-    const facultyJson = (await facultyRes.json()) as { faculty: Faculty[] };
 
     setSessions(sessionsJson.sessions ?? []);
     setPhases(phasesJson.curriculumPhases ?? []);
-    setFaculty((facultyJson.faculty ?? []).map((f) => ({ id: f.id, firstName: f.firstName, lastName: f.lastName })));
-  }
+  }, [includeArchived]);
+
+  const loadFacultyOptions = useCallback(async () => {
+    const params = new URLSearchParams({
+      activeOnly: "true",
+      take: "10",
+      sortBy: "sessionFrequency"
+    });
+
+    if (facultySearch.trim()) {
+      params.set("q", facultySearch.trim());
+    }
+
+    const facultyRes = await fetch(`/api/admin/faculty?${params.toString()}`);
+    const facultyJson = (await facultyRes.json()) as { faculty: Faculty[] };
+    const nextFaculty = (facultyJson.faculty ?? []).map((member) => ({
+      id: member.id,
+      firstName: member.firstName,
+      lastName: member.lastName
+    }));
+
+    setFaculty(nextFaculty);
+    setFacultyLookup((current) => {
+      const nextLookup = { ...current };
+
+      for (const member of nextFaculty) {
+        nextLookup[member.id] = member;
+      }
+
+      return nextLookup;
+    });
+  }, [facultySearch]);
 
   useEffect(() => {
-    void load();
-  }, [includeArchived]);
+    void loadSessionsAndPhases();
+  }, [loadSessionsAndPhases]);
+
+  useEffect(() => {
+    void loadFacultyOptions();
+  }, [loadFacultyOptions]);
 
   function toggleFaculty(facultyId: string) {
     setSelectedFaculty((prev) =>
@@ -58,22 +91,30 @@ export function SessionAdminPanel() {
     );
   }
 
-  const filteredFaculty = useMemo(() => {
-    const query = facultySearch.trim().toLowerCase();
-    const sorted = [...faculty].sort((a, b) => {
+  const displayedFaculty = useMemo(() => {
+    return [...faculty].sort((a, b) => {
       const lastCompare = a.lastName.localeCompare(b.lastName);
       if (lastCompare !== 0) {
         return lastCompare;
       }
+
       return a.firstName.localeCompare(b.firstName);
     });
+  }, [faculty]);
 
-    if (!query) {
-      return sorted;
-    }
+  const selectedFacultyEntries = useMemo(() => {
+    return selectedFaculty
+      .map((facultyId) => facultyLookup[facultyId])
+      .filter((member): member is Faculty => Boolean(member))
+      .sort((a, b) => {
+        const lastCompare = a.lastName.localeCompare(b.lastName);
+        if (lastCompare !== 0) {
+          return lastCompare;
+        }
 
-    return sorted.filter((member) => member.lastName.toLowerCase().includes(query));
-  }, [faculty, facultySearch]);
+        return a.firstName.localeCompare(b.firstName);
+      });
+  }, [facultyLookup, selectedFaculty]);
 
   async function createSession() {
     if (!title || !curriculumPhaseId || !sessionDate || !location) {
@@ -104,7 +145,7 @@ export function SessionAdminPanel() {
     setLocation("");
     setNotes("");
     setSelectedFaculty([]);
-    await load();
+    await Promise.all([loadSessionsAndPhases(), loadFacultyOptions()]);
   }
 
   async function archiveSession(sessionId: string) {
@@ -125,7 +166,7 @@ export function SessionAdminPanel() {
     }
 
     setMessage("Session archived");
-    await load();
+    await loadSessionsAndPhases();
   }
 
   async function restoreSession(sessionId: string) {
@@ -141,7 +182,7 @@ export function SessionAdminPanel() {
     }
 
     setMessage("Session restored");
-    await load();
+    await loadSessionsAndPhases();
   }
 
   async function deleteSession(sessionId: string) {
@@ -162,7 +203,7 @@ export function SessionAdminPanel() {
     }
 
     setMessage("Session deleted");
-    await load();
+    await loadSessionsAndPhases();
   }
 
   return (
@@ -209,11 +250,27 @@ export function SessionAdminPanel() {
             onChange={(event) => setFacultySearch(event.target.value)}
             style={{ marginBottom: "0.6rem" }}
           />
+          {selectedFacultyEntries.length > 0 ? (
+            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.6rem" }}>
+              {selectedFacultyEntries.map((member) => (
+                <button
+                  key={member.id}
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => toggleFaculty(member.id)}
+                >
+                  {member.firstName} {member.lastName} x
+                </button>
+              ))}
+            </div>
+          ) : null}
           <p className="muted" style={{ marginTop: 0 }}>
-            Showing {filteredFaculty.length} faculty
+            {facultySearch.trim()
+              ? `Showing ${displayedFaculty.length} matching faculty from the top historical picks`
+              : `Showing ${displayedFaculty.length} most frequently selected faculty`}
           </p>
           <div className="grid two" style={{ maxHeight: 220, overflow: "auto", border: "1px solid var(--line)", padding: "0.6rem", borderRadius: "10px" }}>
-            {filteredFaculty.map((member) => (
+            {displayedFaculty.map((member) => (
               <label key={member.id} style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
                 <input
                   type="checkbox"

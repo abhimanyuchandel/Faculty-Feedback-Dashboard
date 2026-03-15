@@ -131,9 +131,94 @@ export async function searchFacultyPublic(query: string, limit = 20) {
   `);
 }
 
-export async function listFaculty(params?: { activeOnly?: boolean; take?: number; skip?: number }) {
+export async function listFaculty(params?: {
+  activeOnly?: boolean;
+  take?: number;
+  skip?: number;
+  q?: string;
+  sortBy?: "alphabetical" | "sessionFrequency";
+}) {
+  const trimmedQuery = params?.q?.trim();
+  const where = {
+    ...(params?.activeOnly ? { activeStatus: true } : {}),
+    ...(trimmedQuery
+      ? {
+          OR: [
+            { firstName: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
+            { lastName: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
+            { primaryEmail: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } },
+            { secondaryEmail: { contains: trimmedQuery, mode: Prisma.QueryMode.insensitive } }
+          ]
+        }
+      : {})
+  } satisfies Prisma.FacultyWhereInput;
+
+  if (params?.sortBy === "sessionFrequency") {
+    const faculty = await prisma.faculty.findMany({
+      where,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        primaryEmail: true,
+        secondaryEmail: true,
+        department: true,
+        activeStatus: true,
+        digestSubscriptionStatus: true,
+        publicToken: true,
+        createdAt: true,
+        updatedAt: true,
+        deactivatedAt: true
+      }
+    });
+
+    if (faculty.length === 0) {
+      return [];
+    }
+
+    const counts = await prisma.teachingSessionFaculty.groupBy({
+      by: ["facultyId"],
+      where: {
+        facultyId: {
+          in: faculty.map((member) => member.id)
+        }
+      },
+      _count: {
+        facultyId: true
+      }
+    });
+
+    const countByFacultyId = new Map(
+      counts.map((entry) => [entry.facultyId, entry._count.facultyId])
+    );
+
+    return faculty
+      .sort((a, b) => {
+        const countDifference = (countByFacultyId.get(b.id) ?? 0) - (countByFacultyId.get(a.id) ?? 0);
+        if (countDifference !== 0) {
+          return countDifference;
+        }
+
+        const lastCompare = a.lastName.localeCompare(b.lastName);
+        if (lastCompare !== 0) {
+          return lastCompare;
+        }
+
+        return a.firstName.localeCompare(b.firstName);
+      })
+      .slice(params?.skip ?? 0, (params?.skip ?? 0) + (params?.take ?? 10))
+      .sort((a, b) => {
+        const lastCompare = a.lastName.localeCompare(b.lastName);
+        if (lastCompare !== 0) {
+          return lastCompare;
+        }
+
+        return a.firstName.localeCompare(b.firstName);
+      });
+  }
+
   return prisma.faculty.findMany({
-    where: params?.activeOnly ? { activeStatus: true } : undefined,
+    where,
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     take: params?.take ?? 100,
     skip: params?.skip ?? 0
