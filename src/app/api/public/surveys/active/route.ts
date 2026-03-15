@@ -4,13 +4,11 @@ import { prisma } from "@/lib/db/prisma";
 
 export async function GET() {
   try {
-    const [surveyVersion, phases] = await Promise.all([
-      getActiveSurveyVersion(),
-      prisma.curriculumPhase.findMany({
-        where: { activeStatus: true },
-        orderBy: { sortOrder: "asc" }
-      })
-    ]);
+    const surveyVersion = await getActiveSurveyVersion();
+    const phases = await prisma.curriculumPhase.findMany({
+      where: { activeStatus: true },
+      orderBy: { sortOrder: "asc" }
+    });
 
     if (!surveyVersion) {
       return notFound("No active survey version");

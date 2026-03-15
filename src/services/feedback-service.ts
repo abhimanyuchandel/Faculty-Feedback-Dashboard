@@ -60,11 +60,9 @@ function requiresStudentSessionDate(phaseName: string): boolean {
 }
 
 export async function submitAnonymousFeedback(input: SubmissionInput) {
-  const [faculty, surveyVersion, curriculumPhase] = await Promise.all([
-    prisma.faculty.findUnique({ where: { publicToken: input.facultyToken } }),
-    prisma.surveyVersion.findUnique({ where: { id: input.surveyVersionId } }),
-    prisma.curriculumPhase.findUnique({ where: { id: input.curriculumPhaseId } })
-  ]);
+  const faculty = await prisma.faculty.findUnique({ where: { publicToken: input.facultyToken } });
+  const surveyVersion = await prisma.surveyVersion.findUnique({ where: { id: input.surveyVersionId } });
+  const curriculumPhase = await prisma.curriculumPhase.findUnique({ where: { id: input.curriculumPhaseId } });
 
   if (!faculty || !faculty.activeStatus) {
     throw new Error("Faculty is not available for submissions");

@@ -19,14 +19,12 @@ export default async function FacultyFeedbackPage({ params }: Props) {
     notFound();
   }
 
-  const [surveyVersion, allCurriculumPhases] = await Promise.all([
-    getActiveSurveyVersion(),
-    prisma.curriculumPhase.findMany({
-      where: { activeStatus: true },
-      orderBy: { sortOrder: "asc" },
-      select: { id: true, name: true, sortOrder: true }
-    })
-  ]);
+  const surveyVersion = await getActiveSurveyVersion();
+  const allCurriculumPhases = await prisma.curriculumPhase.findMany({
+    where: { activeStatus: true },
+    orderBy: { sortOrder: "asc" },
+    select: { id: true, name: true, sortOrder: true }
+  });
 
   if (!surveyVersion) {
     return (
