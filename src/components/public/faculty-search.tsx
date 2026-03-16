@@ -91,7 +91,7 @@ export function FacultySearch() {
       <p className="muted">Search by first name, last name, primary email, or secondary email.</p>
       <div style={{ marginTop: "-0.2rem", marginBottom: "1rem" }}>
         <label className="label" htmlFor="faculty-invite-email">
-          Can't find your faculty member? Send them an email to enroll
+          Can&apos;t find your faculty member? Send them an email to enroll
         </label>
         <div className="grid faculty-search-form">
           <div>
