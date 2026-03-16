@@ -106,7 +106,7 @@ export async function sendFacultyEnrollmentInviteEmail(primaryEmailInput: string
   const text = [
     "Hello,",
     "",
-    "A student was unable to find you in the Faculty Teaching Feedback system.",
+    "A student was unable to find you in the Uniformed Services University of the Health Sciences Department of Medicine Faculty Teaching Feedback system.",
     "",
     "If you would like to be added, please use the enrollment form below and provide:",
     "- First Name",
@@ -121,7 +121,7 @@ export async function sendFacultyEnrollmentInviteEmail(primaryEmailInput: string
 
   const html = `<div style="font-family: Arial, sans-serif; color: #111; max-width: 640px;">
     <p>Hello,</p>
-    <p>A student was unable to find you in the Faculty Teaching Feedback system.</p>
+    <p>A student was unable to find you in the Uniformed Services University of the Health Sciences Department of Medicine Faculty Teaching Feedback system.</p>
     <p>If you would like to be added, please use the enrollment form below and provide:</p>
     <ul>
       <li>First Name</li>
