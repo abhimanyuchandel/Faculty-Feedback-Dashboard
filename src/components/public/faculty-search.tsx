@@ -17,13 +17,16 @@ export function FacultySearch() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
   async function runSearch() {
     if (!query.trim()) {
       setResults([]);
+      setHasSearched(false);
       return;
     }
 
+    setHasSearched(true);
     setLoading(true);
     setError(null);
 
@@ -49,7 +52,7 @@ export function FacultySearch() {
       <h1>Find Faculty</h1>
       <p className="muted">Search by first name, last name, primary email, or secondary email.</p>
 
-      <div className="grid" style={{ gridTemplateColumns: "1fr auto", alignItems: "end" }}>
+      <div className="grid faculty-search-form">
         <div>
           <label className="label" htmlFor="faculty-query">
             Search
@@ -74,35 +77,22 @@ export function FacultySearch() {
 
       {error ? <p className="alert error">{error}</p> : null}
 
-      <div style={{ marginTop: "1rem" }}>
-        {results.length === 0 ? (
-          <p className="muted">No results yet.</p>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Faculty</th>
-                <th>Email</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((member) => (
-                <tr key={member.id}>
-                  <td>
-                    {member.firstName} {member.lastName}
-                  </td>
-                  <td>{member.primaryEmail}</td>
-                  <td>
-                    <Link className="btn ghost" href={`/f/${member.publicToken}`}>
-                      Give feedback
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      <div className="faculty-search-results">
+        {!hasSearched ? <p className="muted">Search for a faculty member to continue.</p> : null}
+        {hasSearched && !loading && results.length === 0 && !error ? <p className="muted">No matches found.</p> : null}
+        {results.map((member) => (
+          <article key={member.id} className="faculty-result-card">
+            <div className="faculty-result-meta">
+              <div className="faculty-result-name">
+                {member.firstName} {member.lastName}
+              </div>
+              <div className="faculty-result-email">{member.primaryEmail}</div>
+            </div>
+            <Link className="btn ghost faculty-result-action" href={`/f/${member.publicToken}`}>
+              Give feedback
+            </Link>
+          </article>
+        ))}
       </div>
     </div>
   );

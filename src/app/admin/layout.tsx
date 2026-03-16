@@ -21,9 +21,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <>
       <header className="nav">
-        <div className="container nav-inner">
-          <strong>USUHS DOM- Faculty Feedback Dashboard</strong>
-          <nav className="nav-links">
+        <div className="container admin-nav-shell">
+          <strong className="admin-nav-title">USUHS DOM- Faculty Feedback Dashboard</strong>
+          <nav className="nav-links admin-nav-links">
             <Link href="/admin">Overview</Link>
             <Link href="/admin/faculty">Faculty</Link>
             <Link href="/admin/surveys">Surveys</Link>
@@ -35,7 +35,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href="/admin/account">Account</Link>
             <Link href="/admin/audit">Audit</Link>
           </nav>
-          <LogoutButton />
+          <div className="admin-nav-actions">
+            <LogoutButton />
+          </div>
         </div>
       </header>
       <main className="page">

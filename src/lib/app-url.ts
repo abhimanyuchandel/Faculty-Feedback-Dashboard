@@ -1,10 +1,15 @@
 import { env } from "@/lib/env";
 
+type ParsedCandidate = {
+  hostname: string;
+  url: string;
+};
+
 function stripTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");
 }
 
-function parseCandidate(raw: string | undefined): string | null {
+function parseCandidate(raw: string | undefined): ParsedCandidate | null {
   if (!raw) {
     return null;
   }
@@ -29,13 +34,21 @@ function parseCandidate(raw: string | undefined): string | null {
       return null;
     }
 
-    return stripTrailingSlash(parsed.toString());
+    return {
+      hostname,
+      url: stripTrailingSlash(parsed.toString())
+    };
   } catch {
     return null;
   }
 }
 
 export function appBaseUrl() {
+  const productionUrl = parseCandidate(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+  if (process.env.NODE_ENV === "production" && productionUrl && !productionUrl.hostname.endsWith(".vercel.app")) {
+    return productionUrl.url;
+  }
+
   const candidates = [
     process.env.APP_BASE_URL,
     process.env.NEXTAUTH_URL,
@@ -47,7 +60,7 @@ export function appBaseUrl() {
   for (const candidate of candidates) {
     const parsed = parseCandidate(candidate);
     if (parsed) {
-      return parsed;
+      return parsed.url;
     }
   }
 
