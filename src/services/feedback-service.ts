@@ -318,8 +318,7 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
     breakdown: [...breakdownMap.values()].sort(
       (a, b) =>
         b.year - a.year ||
-        a.curriculumPhaseName.localeCompare(b.curriculumPhaseName) ||
-        a.facultyName.localeCompare(b.facultyName)
+        a.curriculumPhaseName.localeCompare(b.curriculumPhaseName)
     ),
     filters: {
       faculty: faculty.map((entry) => ({
