@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return unauthorized();
     }
 
-    if (!hasAnyRole(admin, ["admin", "reporting"])) {
+    if (!hasAnyRole(admin, ["admin"])) {
       return forbidden();
     }
 
@@ -82,4 +82,3 @@ function escapeCsv(value: string) {
   const escaped = value.replaceAll("\"", "\"\"");
   return `"${escaped}"`;
 }
-

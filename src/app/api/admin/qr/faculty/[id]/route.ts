@@ -11,7 +11,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       return unauthorized();
     }
 
-    if (!hasAnyRole(admin, ["admin", "reporting"])) {
+    if (!hasAnyRole(admin, ["admin"])) {
       return forbidden();
     }
 

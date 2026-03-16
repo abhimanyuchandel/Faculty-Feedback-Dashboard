@@ -18,7 +18,7 @@ async function getAuthenticatedUser() {
     return { error: unauthorized() };
   }
 
-  if (!hasAnyRole(admin, ["admin", "reporting"])) {
+  if (!hasAnyRole(admin, ["admin"])) {
     return { error: forbidden() };
   }
 

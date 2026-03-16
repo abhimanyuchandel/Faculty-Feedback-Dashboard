@@ -18,7 +18,7 @@ async function main() {
     update: {},
     create: {
       name: "admin",
-      description: "Full dashboard access"
+      description: "Administrator access"
     }
   });
 

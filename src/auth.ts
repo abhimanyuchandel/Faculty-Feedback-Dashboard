@@ -3,6 +3,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db/prisma";
+import { collapseAdminRoles } from "@/lib/auth/roles";
 import { decryptMfaSecret, verifyTotpCode } from "@/lib/mfa";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -39,6 +40,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
+        const roles = collapseAdminRoles(user.roles.map((entry) => entry.role.name));
+        if (roles.length === 0) {
+          return null;
+        }
+
         const passwordOk = await bcrypt.compare(password, user.passwordHash);
         if (!passwordOk) {
           return null;
@@ -70,7 +76,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
-          roles: user.roles.map((r) => r.role.name)
+          roles
         };
       }
     })

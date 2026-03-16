@@ -20,7 +20,6 @@ type ManagedAdminUser = {
   activeStatus: boolean;
   mfaEnabled: boolean;
   lastLoginAt: string | null;
-  roles: string[];
 };
 
 type MfaSetupState = {
@@ -53,11 +52,10 @@ export function AccountSettingsPanel() {
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newAdminName, setNewAdminName] = useState("");
   const [newAdminPassword, setNewAdminPassword] = useState("");
-  const [newAdminIsAdminRole, setNewAdminIsAdminRole] = useState(true);
-  const [newAdminIsReportingRole, setNewAdminIsReportingRole] = useState(true);
   const [adminCreateMessage, setAdminCreateMessage] = useState<string | null>(null);
   const [adminCreateError, setAdminCreateError] = useState<string | null>(null);
   const [creatingAdmin, setCreatingAdmin] = useState(false);
+  const [removingAdminUserId, setRemovingAdminUserId] = useState<string | null>(null);
 
   const canManageAdmins = useMemo(() => Boolean(user?.roles.includes("admin")), [user?.roles]);
 
@@ -260,16 +258,6 @@ export function AccountSettingsPanel() {
     setAdminCreateError(null);
     setAdminCreateMessage(null);
 
-    const roles = [
-      ...(newAdminIsAdminRole ? ["admin"] : []),
-      ...(newAdminIsReportingRole ? ["reporting"] : [])
-    ];
-
-    if (roles.length === 0) {
-      setAdminCreateError("Select at least one role");
-      return;
-    }
-
     if (!newAdminEmail || !newAdminPassword) {
       setAdminCreateError("Email and temporary password are required");
       return;
@@ -283,8 +271,7 @@ export function AccountSettingsPanel() {
       body: JSON.stringify({
         email: newAdminEmail,
         name: newAdminName,
-        password: newAdminPassword,
-        roles
+        password: newAdminPassword
       })
     });
 
@@ -299,9 +286,34 @@ export function AccountSettingsPanel() {
     setNewAdminEmail("");
     setNewAdminName("");
     setNewAdminPassword("");
-    setNewAdminIsAdminRole(true);
-    setNewAdminIsReportingRole(true);
     setAdminCreateMessage(`Admin user created: ${body.user.email}`);
+    await loadAdminUsers();
+  }
+
+  async function removeAdminUser(adminUser: ManagedAdminUser) {
+    setAdminCreateError(null);
+    setAdminCreateMessage(null);
+
+    const confirmed = window.confirm(`Remove admin user ${adminUser.email}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setRemovingAdminUserId(adminUser.id);
+
+    const response = await fetch(`/api/admin/admin-users/${adminUser.id}`, {
+      method: "DELETE"
+    });
+
+    const body = (await response.json()) as { message?: string };
+    setRemovingAdminUserId(null);
+
+    if (!response.ok) {
+      setAdminCreateError(body.message ?? "Failed to remove admin user");
+      return;
+    }
+
+    setAdminCreateMessage(`Removed admin user: ${adminUser.email}`);
     await loadAdminUsers();
   }
 
@@ -462,7 +474,7 @@ export function AccountSettingsPanel() {
       {canManageAdmins ? (
         <div className="card">
           <h2>Admin User Management</h2>
-          <p className="muted">Create additional admin/reporting users.</p>
+          <p className="muted">Create additional administrator users.</p>
 
           <div className="grid two">
             <div>
@@ -487,27 +499,6 @@ export function AccountSettingsPanel() {
                 onChange={(event) => setNewAdminPassword(event.target.value)}
               />
             </div>
-            <div>
-              <label className="label">Roles</label>
-              <div style={{ display: "flex", gap: "0.8rem", alignItems: "center", flexWrap: "wrap" }}>
-                <label style={{ display: "inline-flex", gap: "0.4rem", alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    checked={newAdminIsAdminRole}
-                    onChange={(event) => setNewAdminIsAdminRole(event.target.checked)}
-                  />
-                  <span>Admin</span>
-                </label>
-                <label style={{ display: "inline-flex", gap: "0.4rem", alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    checked={newAdminIsReportingRole}
-                    onChange={(event) => setNewAdminIsReportingRole(event.target.checked)}
-                  />
-                  <span>Reporting</span>
-                </label>
-              </div>
-            </div>
           </div>
 
           <div style={{ marginTop: "0.8rem" }}>
@@ -525,10 +516,10 @@ export function AccountSettingsPanel() {
                 <tr>
                   <th>Email</th>
                   <th>Name</th>
-                  <th>Roles</th>
                   <th>MFA</th>
                   <th>Status</th>
                   <th>Last Login</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -545,10 +536,23 @@ export function AccountSettingsPanel() {
                     <tr key={adminUser.id}>
                       <td>{adminUser.email}</td>
                       <td>{adminUser.name || "-"}</td>
-                      <td>{adminUser.roles.join(", ")}</td>
                       <td>{adminUser.mfaEnabled ? "Enabled" : "Disabled"}</td>
                       <td>{adminUser.activeStatus ? "Active" : "Inactive"}</td>
                       <td>{adminUser.lastLoginAt ? new Date(adminUser.lastLoginAt).toLocaleString() : "Never"}</td>
+                      <td>
+                        {user?.id === adminUser.id ? (
+                          <span className="muted">Current user</span>
+                        ) : (
+                          <button
+                            className="btn ghost"
+                            type="button"
+                            onClick={() => removeAdminUser(adminUser)}
+                            disabled={removingAdminUserId === adminUser.id}
+                          >
+                            {removingAdminUserId === adminUser.id ? "Removing..." : "Remove"}
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}

@@ -18,7 +18,7 @@ export async function GET() {
       return unauthorized();
     }
 
-    if (!hasAnyRole(admin, ["admin", "reporting"])) {
+    if (!hasAnyRole(admin, ["admin"])) {
       return forbidden();
     }
 

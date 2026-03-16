@@ -41,19 +41,12 @@ async function main() {
 
   const adminRole = await prisma.adminRole.upsert({
     where: { name: "admin" },
-    update: {},
+    update: {
+      description: "Administrator access"
+    },
     create: {
       name: "admin",
-      description: "Full dashboard access"
-    }
-  });
-
-  const reportingRole = await prisma.adminRole.upsert({
-    where: { name: "reporting" },
-    update: {},
-    create: {
-      name: "reporting",
-      description: "Read-only analytics and exports"
+      description: "Administrator access"
     }
   });
 
@@ -79,19 +72,6 @@ async function main() {
       }
     });
 
-    await prisma.adminUserRole.upsert({
-      where: {
-        userId_roleId: {
-          userId: admin.id,
-          roleId: reportingRole.id
-        }
-      },
-      update: {},
-      create: {
-        userId: admin.id,
-        roleId: reportingRole.id
-      }
-    });
   }
 
   const surveyV1 = await prisma.surveyVersion.upsert({

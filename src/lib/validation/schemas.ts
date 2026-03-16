@@ -70,6 +70,5 @@ export const facultyEnrollmentRequestSchema = z.object({
 export const adminUserCreateSchema = z.object({
   email: z.string().trim().email().toLowerCase(),
   name: z.string().trim().max(120).optional().or(z.literal("")),
-  password: z.string().min(10).max(128),
-  roles: z.array(z.enum(["admin", "reporting"])).min(1)
+  password: z.string().min(10).max(128)
 });

@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { badRequest, created, forbidden, ok, serverError, unauthorized } from "@/lib/http";
 import { getApiAdminUser, hasAnyRole } from "@/lib/auth/api";
+import { collapseAdminRoles } from "@/lib/auth/roles";
 import { prisma } from "@/lib/db/prisma";
 import { adminUserCreateSchema } from "@/lib/validation/schemas";
 import { recordAuditLog } from "@/lib/audit";
@@ -43,7 +44,7 @@ export async function GET() {
         activeStatus: user.activeStatus,
         mfaEnabled: user.mfaEnabled,
         lastLoginAt: user.lastLoginAt,
-        roles: user.roles.map((entry) => entry.role.name)
+        roles: collapseAdminRoles(user.roles.map((entry) => entry.role.name))
       }))
     });
   } catch (error) {
@@ -80,18 +81,16 @@ export async function POST(request: Request) {
     const passwordHash = await bcrypt.hash(parsed.data.password, 12);
 
     const createdUser = await prisma.$transaction(async (tx) => {
-      const roleRows = await Promise.all(
-        parsed.data.roles.map((roleName) =>
-          tx.adminRole.upsert({
-            where: { name: roleName },
-            update: {},
-            create: {
-              name: roleName,
-              description: roleName === "admin" ? "Full dashboard access" : "Read-only analytics and exports"
-            }
-          })
-        )
-      );
+      const adminRole = await tx.adminRole.upsert({
+        where: { name: "admin" },
+        update: {
+          description: "Administrator access"
+        },
+        create: {
+          name: "admin",
+          description: "Administrator access"
+        }
+      });
 
       return tx.user.create({
         data: {
@@ -100,9 +99,9 @@ export async function POST(request: Request) {
           passwordHash,
           activeStatus: true,
           roles: {
-            create: roleRows.map((role) => ({
-              roleId: role.id
-            }))
+            create: {
+              roleId: adminRole.id
+            }
           }
         },
         select: {
@@ -129,8 +128,7 @@ export async function POST(request: Request) {
       entityType: "admin_user",
       entityId: createdUser.id,
       metadata: {
-        email: createdUser.email,
-        roles: createdUser.roles.map((entry) => entry.role.name)
+        email: createdUser.email
       }
     });
 
@@ -142,7 +140,7 @@ export async function POST(request: Request) {
         activeStatus: createdUser.activeStatus,
         mfaEnabled: createdUser.mfaEnabled,
         lastLoginAt: createdUser.lastLoginAt,
-        roles: createdUser.roles.map((entry) => entry.role.name)
+        roles: ["admin"]
       }
     });
   } catch (error) {

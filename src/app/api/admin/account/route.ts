@@ -13,7 +13,7 @@ export async function GET() {
       return unauthorized();
     }
 
-    if (!hasAnyRole(admin, ["admin", "reporting"])) {
+    if (!hasAnyRole(admin, ["admin"])) {
       return forbidden();
     }
 
@@ -40,7 +40,7 @@ export async function GET() {
       user: user
         ? {
             ...user,
-            roles: user.roles.map((entry) => entry.role.name),
+            roles: ["admin"],
             mfaSetupAvailable: isMfaAvailable()
           }
         : null
@@ -58,7 +58,7 @@ export async function PATCH(request: NextRequest) {
       return unauthorized();
     }
 
-    if (!hasAnyRole(admin, ["admin", "reporting"])) {
+    if (!hasAnyRole(admin, ["admin"])) {
       return forbidden();
     }
 
@@ -143,7 +143,7 @@ export async function PATCH(request: NextRequest) {
     return ok({
       user: {
         ...updated,
-        roles: updated.roles.map((entry) => entry.role.name),
+        roles: ["admin"],
         mfaSetupAvailable: isMfaAvailable()
       }
     });

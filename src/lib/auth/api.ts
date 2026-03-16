@@ -1,16 +1,43 @@
 import { auth } from "@/auth";
+import { collapseAdminRoles } from "@/lib/auth/roles";
+import { prisma } from "@/lib/db/prisma";
 
 export async function getApiAdminUser() {
   const session = await auth();
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
+    return null;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      email: true,
+      activeStatus: true,
+      roles: {
+        include: {
+          role: {
+            select: { name: true }
+          }
+        }
+      }
+    }
+  });
+
+  if (!user || !user.activeStatus) {
+    return null;
+  }
+
+  const roles = collapseAdminRoles(user.roles.map((entry) => entry.role.name));
+  if (roles.length === 0) {
     return null;
   }
 
   return {
-    id: session.user.id,
-    email: session.user.email ?? "",
-    roles: session.user.roles ?? []
+    id: user.id,
+    email: user.email,
+    roles
   };
 }
 

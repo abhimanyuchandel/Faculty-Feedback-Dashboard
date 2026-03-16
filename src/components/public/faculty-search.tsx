@@ -115,7 +115,7 @@ export function FacultySearch() {
 
       <div style={{ marginTop: "1rem", marginBottom: "1rem" }}>
         <label className="label" htmlFor="faculty-invite-email">
-          Can&apos;t find your faculty member? Send them an email to enroll
+          Can&apos;t find your faculty member? Send them an email to enroll (.mil email not supported at this time)
         </label>
         <div className="grid faculty-search-form">
           <div>
@@ -132,7 +132,6 @@ export function FacultySearch() {
             {inviteSubmitting ? "Sending..." : "Send enrollment email"}
           </button>
         </div>
-        <p className="muted">This confirms the app handed the message to the email provider. Inbox delivery still depends on provider and recipient mail filtering.</p>
         {inviteMessage ? <p className="alert success">{inviteMessage}</p> : null}
         {inviteError ? <p className="alert error">{inviteError}</p> : null}
       </div>

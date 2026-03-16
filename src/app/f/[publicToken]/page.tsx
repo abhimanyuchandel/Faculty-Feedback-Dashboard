@@ -118,8 +118,8 @@ export default async function FacultyFeedbackPage({ params }: Props) {
             Feedback for {faculty.firstName} {faculty.lastName}
           </h1>
           <p className="muted">
-            Feedback is anonymous and visible to faculty only as aggregated digest summaries grouped by curriculum
-            phase.
+            Feedback is anonymous. Faculty receive anonymized digest emails every 6 months, and exact submission
+            timestamps are omitted.
           </p>
         </div>
 
