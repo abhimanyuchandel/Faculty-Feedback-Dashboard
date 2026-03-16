@@ -89,28 +89,6 @@ export function FacultySearch() {
     <div className="card">
       <h1>Find Faculty</h1>
       <p className="muted">Search by first name, last name, primary email, or secondary email.</p>
-      <div style={{ marginTop: "-0.2rem", marginBottom: "1rem" }}>
-        <label className="label" htmlFor="faculty-invite-email">
-          Can&apos;t find your faculty member? Send them an email to enroll
-        </label>
-        <div className="grid faculty-search-form">
-          <div>
-            <input
-              id="faculty-invite-email"
-              className="input"
-              type="email"
-              placeholder="faculty@example.edu"
-              value={inviteEmail}
-              onChange={(event) => setInviteEmail(event.target.value)}
-            />
-          </div>
-          <button type="button" className="btn ghost" onClick={sendEnrollmentInvite} disabled={inviteSubmitting}>
-            {inviteSubmitting ? "Sending..." : "Send enrollment email"}
-          </button>
-        </div>
-        {inviteMessage ? <p className="alert success">{inviteMessage}</p> : null}
-        {inviteError ? <p className="alert error">{inviteError}</p> : null}
-      </div>
 
       <div className="grid faculty-search-form">
         <div>
@@ -133,6 +111,30 @@ export function FacultySearch() {
         <button type="button" className="btn primary" onClick={runSearch} disabled={loading}>
           {loading ? "Searching..." : "Search"}
         </button>
+      </div>
+
+      <div style={{ marginTop: "1rem", marginBottom: "1rem" }}>
+        <label className="label" htmlFor="faculty-invite-email">
+          Can&apos;t find your faculty member? Send them an email to enroll
+        </label>
+        <div className="grid faculty-search-form">
+          <div>
+            <input
+              id="faculty-invite-email"
+              className="input"
+              type="email"
+              placeholder="faculty@example.edu"
+              value={inviteEmail}
+              onChange={(event) => setInviteEmail(event.target.value)}
+            />
+          </div>
+          <button type="button" className="btn ghost" onClick={sendEnrollmentInvite} disabled={inviteSubmitting}>
+            {inviteSubmitting ? "Sending..." : "Send enrollment email"}
+          </button>
+        </div>
+        <p className="muted">This confirms the app handed the message to the email provider. Inbox delivery still depends on provider and recipient mail filtering.</p>
+        {inviteMessage ? <p className="alert success">{inviteMessage}</p> : null}
+        {inviteError ? <p className="alert error">{inviteError}</p> : null}
       </div>
 
       {error ? <p className="alert error">{error}</p> : null}

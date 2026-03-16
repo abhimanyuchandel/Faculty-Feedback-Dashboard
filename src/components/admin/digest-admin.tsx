@@ -81,7 +81,13 @@ export function DigestAdminPanel() {
       method: "POST"
     });
 
-    const data = (await response.json()) as { sent?: boolean; reason?: string; message?: string; submissionCount?: number };
+    const data = (await response.json()) as {
+      sent?: boolean;
+      reason?: string;
+      message?: string;
+      submissionCount?: number;
+      providerMessageId?: string | null;
+    };
 
     if (!response.ok) {
       setMessage(data.message ?? "Failed to send test digest");
@@ -90,7 +96,9 @@ export function DigestAdminPanel() {
 
     setMessage(
       data.sent
-        ? `Test digest sent${typeof data.submissionCount === "number" ? ` (${data.submissionCount} responses included)` : ""}.`
+        ? `Test digest accepted by email provider${
+            typeof data.submissionCount === "number" ? ` (${data.submissionCount} responses included)` : ""
+          }${data.providerMessageId ? ` Tracking ID: ${data.providerMessageId}.` : "."}`
         : data.reason ?? "No test digest was sent."
     );
   }

@@ -512,7 +512,8 @@ export async function sendDigestForFaculty(
   return {
     sent: true,
     digestHistoryId: digestRow.id,
-    submissionCount: markedCount
+    submissionCount: markedCount,
+    providerMessageId
   };
 }
 

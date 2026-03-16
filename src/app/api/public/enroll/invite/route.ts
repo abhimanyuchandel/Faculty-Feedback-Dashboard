@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
 
     return created({
       invited: true,
-      message: "Enrollment email sent to the faculty member."
+      providerMessageId: result.providerMessageId,
+      message: "Enrollment email accepted by the email provider."
     });
   } catch (error) {
     console.error(error);
