@@ -4,6 +4,7 @@ import { badRequest, forbidden, ok, serverError, unauthorized } from "@/lib/http
 import { getApiAdminUser, hasAnyRole } from "@/lib/auth/api";
 import { prisma } from "@/lib/db/prisma";
 import { recordAuditLog } from "@/lib/audit";
+import { isMfaAvailable } from "@/lib/mfa";
 
 export async function GET() {
   try {
@@ -39,7 +40,8 @@ export async function GET() {
       user: user
         ? {
             ...user,
-            roles: user.roles.map((entry) => entry.role.name)
+            roles: user.roles.map((entry) => entry.role.name),
+            mfaSetupAvailable: isMfaAvailable()
           }
         : null
     });
@@ -141,7 +143,8 @@ export async function PATCH(request: NextRequest) {
     return ok({
       user: {
         ...updated,
-        roles: updated.roles.map((entry) => entry.role.name)
+        roles: updated.roles.map((entry) => entry.role.name),
+        mfaSetupAvailable: isMfaAvailable()
       }
     });
   } catch (error) {

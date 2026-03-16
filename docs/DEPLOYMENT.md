@@ -7,10 +7,12 @@
 - Local Prisma migrations and seed scripts should keep using a direct or session PostgreSQL connection string.
 
 ## 2. Required services
-- Cloudflare Workers account
+- Vercel account for production deployment
+- Cloudflare Workers account if you still want the alternate worker deploy path
 - Managed PostgreSQL database
 - Optional email provider: `noop`, Postmark, SendGrid, or Resend
 - Optional Turnstile site and secret keys for production CAPTCHA
+- Optional but recommended dedicated MFA encryption key for admin TOTP secrets
 
 ## 3. Local setup
 1. Copy `.env.example` to `.env` and fill local values.
@@ -33,8 +35,8 @@
   - safe default digest variables
 - If either worker name is already taken in your Cloudflare account, rename both the `name` and matching `service` values before deploying.
 
-## 5. Cloudflare variables and secrets
-Set these in Cloudflare Workers -> your worker -> Settings -> Variables and Secrets.
+## 5. Environment variables
+Set these in your deployment target. For Vercel this is `Project -> Settings -> Environment Variables`. For Cloudflare Workers use `Settings -> Variables and Secrets`.
 
 Secrets:
 - `DATABASE_URL`
@@ -45,6 +47,7 @@ Secrets:
 - `SENDGRID_API_KEY` if using SendGrid
 - `RESEND_API_KEY` if using Resend
 - `TURNSTILE_SECRET_KEY` for production CAPTCHA
+- `MFA_ENCRYPTION_KEY` for admin MFA secret storage
 
 Plain variables:
 - `NEXTAUTH_URL`
@@ -54,13 +57,17 @@ Plain variables:
 - `RESEND_FROM_EMAIL` if using Resend
 - `TURNSTILE_SITE_KEY`
 - `DIGEST_TIMEZONE`
-- `DIGEST_MIN_THRESHOLD`
-- `DIGEST_MAX_AGE_DAYS`
 
 Recommended staging defaults:
 - `EMAIL_PROVIDER=noop`
 - `TURNSTILE_SITE_KEY=1x00000000000000000000AA`
 - `TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA`
+
+Recommended production values for this app:
+- `EMAIL_PROVIDER=resend`
+- `RESEND_FROM_EMAIL=Faculty Feedback <noreply@facultyteachingfeedback.com>`
+- `APP_BASE_URL=https://facultyteachingfeedback.com`
+- `NEXTAUTH_URL=https://facultyteachingfeedback.com`
 
 ## 6. Database initialization
 Run locally against the direct or session database URL in `DIRECT_URL`:
@@ -79,12 +86,18 @@ Run locally against the direct or session database URL in `DIRECT_URL`:
    - `npm run cf:deploy`
 
 ## 8. Digest scheduling
-The application still expects an HTTP `POST` to `/api/internal/jobs/digest` with header:
-- `x-cron-secret: <CRON_SECRET>`
+The production Vercel deployment now includes a daily cron in `vercel.json` for:
+- `GET /api/internal/jobs/digest`
 
-For now, use one of:
-- manual admin-triggered digest runs
-- an external scheduler that can send authenticated `POST` requests
+If `CRON_SECRET` is configured, the route accepts either:
+- `Authorization: Bearer <CRON_SECRET>` (Vercel cron style)
+- `x-cron-secret: <CRON_SECRET>` (manual or alternate scheduler style)
+
+Digest behavior:
+- first automated digest goes out 6 months after faculty creation
+- each faculty also gets a stable random offset between 1 and 60 days
+- after that, digests repeat every 6 months
+- no digest is sent unless at least one feedback submission exists in that faculty member's last 6-month window
 
 ## 9. Smoke test checklist
 1. `/admin/login`
@@ -93,14 +106,18 @@ For now, use one of:
 4. student feedback submission
 5. QR PNG download
 6. QR packet PDF download
-7. digest preview
-8. forgot-password flow
+7. Turnstile CAPTCHA on a public feedback page
+8. enable MFA from `/admin/account` and confirm login with TOTP
+9. digest preview
+10. forgot-password flow
 
 ## 10. Production hardening checklist
-- move from `EMAIL_PROVIDER=noop` to a real provider
+- move from `EMAIL_PROVIDER=noop` to `EMAIL_PROVIDER=resend`
+- verify your sending domain inside Resend before launch
 - use production Turnstile keys
+- set `MFA_ENCRYPTION_KEY` before enabling admin MFA
+- enroll every admin user in MFA from `/admin/account`
 - use separate staging and production databases
-- enforce MFA for all admin users
 - monitor worker errors and failed digest runs
 - validate backup restore on the database provider
 

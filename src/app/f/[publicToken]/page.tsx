@@ -129,7 +129,8 @@ export default async function FacultyFeedbackPage({ params }: Props) {
           curriculumPhases={curriculumPhases}
           sessionOptions={sessionOptions}
           questions={resolvedQuestions}
-          captchaConfigured={Boolean(process.env.TURNSTILE_SECRET_KEY)}
+          captchaConfigured={Boolean(process.env.TURNSTILE_SECRET_KEY && process.env.TURNSTILE_SITE_KEY)}
+          captchaSiteKey={process.env.TURNSTILE_SITE_KEY ?? ""}
         />
       </section>
     </main>

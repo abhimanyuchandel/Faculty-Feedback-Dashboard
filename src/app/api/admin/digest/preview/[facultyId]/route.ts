@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ fac
     const preview = await previewDigestForFaculty(facultyId);
 
     if (!preview) {
-      return notFound("No pending submissions for this faculty");
+      return notFound("No feedback found for this faculty in the last 6 months");
     }
 
     return ok(preview);

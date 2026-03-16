@@ -2,15 +2,18 @@ import {
   DigestRunType,
   DigestSubscriptionStatus,
   EmailTokenType,
-  QuestionType,
-  Prisma
+  Prisma,
+  QuestionType
 } from "@prisma/client";
-import { subDays } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
 import { appUrl } from "@/lib/app-url";
-import { env } from "@/lib/env";
 import { sendTransactionalEmail } from "@/lib/email/provider";
 import { generateOpaqueToken, hashToken } from "@/lib/security";
+import {
+  DIGEST_WINDOW_MONTHS,
+  latestScheduledDigestWindow,
+  rollingDigestWindow
+} from "@/lib/digest-schedule";
 import { facultyFeedbackUrl, generateQrDataUrl } from "@/services/qr-service";
 
 type PhaseDigestSummary = {
@@ -38,8 +41,11 @@ type DigestPayload = {
   windowEnd: Date;
 };
 
-const DIGEST_MIN_THRESHOLD = env.DIGEST_MIN_THRESHOLD;
-const DIGEST_MAX_AGE_DAYS = env.DIGEST_MAX_AGE_DAYS;
+type DigestWindow = {
+  windowStart: Date;
+  windowEnd: Date;
+};
+
 const ENROLL_COLLEAGUE_URL = appUrl("/enroll");
 
 function monthYearLabel(date: Date): string {
@@ -161,7 +167,7 @@ export async function resubscribeFaculty(rawToken: string) {
   return faculty;
 }
 
-export async function getDigestEligibleFacultyIds(): Promise<string[]> {
+async function getAutomatedDigestPlans(asOf = new Date()) {
   const candidates = await prisma.faculty.findMany({
     where: {
       activeStatus: true,
@@ -169,7 +175,10 @@ export async function getDigestEligibleFacultyIds(): Promise<string[]> {
     },
     select: {
       id: true,
+      createdAt: true,
+      publicToken: true,
       digestHistory: {
+        where: { runType: DigestRunType.AUTOMATED },
         orderBy: { sentAt: "desc" },
         take: 1,
         select: { sentAt: true }
@@ -177,39 +186,55 @@ export async function getDigestEligibleFacultyIds(): Promise<string[]> {
     }
   });
 
-  const eligible: string[] = [];
-  const now = new Date();
+  const plans: Array<{ facultyId: string; windowStart: Date; windowEnd: Date; cycleDueAt: Date }> = [];
 
   for (const faculty of candidates) {
-    const lastSentAt = faculty.digestHistory[0]?.sentAt ?? null;
-    const unsentCount = await prisma.feedbackSubmission.count({
-      where: {
-        facultyId: faculty.id,
-        digestedAt: null,
-        ...(lastSentAt ? { submittedAt: { gt: lastSentAt } } : {})
-      }
-    });
-
-    if (unsentCount >= DIGEST_MIN_THRESHOLD) {
-      eligible.push(faculty.id);
+    const scheduledWindow = latestScheduledDigestWindow(faculty.createdAt, faculty.publicToken, asOf);
+    if (!scheduledWindow) {
       continue;
     }
 
-    const fallbackThresholdDate = subDays(now, DIGEST_MAX_AGE_DAYS);
-    if (unsentCount >= 1 && (!lastSentAt || lastSentAt < fallbackThresholdDate)) {
-      eligible.push(faculty.id);
+    const lastAutomatedDigest = faculty.digestHistory[0]?.sentAt ?? null;
+    if (lastAutomatedDigest && lastAutomatedDigest >= scheduledWindow.cycleDueAt) {
+      continue;
     }
+
+    const recentSubmissionCount = await prisma.feedbackSubmission.count({
+      where: {
+        facultyId: faculty.id,
+        submittedAt: {
+          gte: scheduledWindow.windowStart,
+          lte: scheduledWindow.windowEnd
+        }
+      }
+    });
+
+    if (recentSubmissionCount === 0) {
+      continue;
+    }
+
+    plans.push({
+      facultyId: faculty.id,
+      windowStart: scheduledWindow.windowStart,
+      windowEnd: scheduledWindow.windowEnd,
+      cycleDueAt: scheduledWindow.cycleDueAt
+    });
   }
 
-  return eligible;
+  return plans;
 }
 
-async function buildDigestPayloadForFaculty(facultyId: string): Promise<DigestPayload | null> {
+async function buildDigestPayloadForFaculty(facultyId: string, window: DigestWindow): Promise<DigestPayload | null> {
   const faculty = await prisma.faculty.findUnique({
     where: { id: facultyId },
     include: {
       feedbackSubmissions: {
-        where: { digestedAt: null },
+        where: {
+          submittedAt: {
+            gte: window.windowStart,
+            lte: window.windowEnd
+          }
+        },
         include: {
           curriculumPhase: true,
           surveyVersion: {
@@ -231,9 +256,6 @@ async function buildDigestPayloadForFaculty(facultyId: string): Promise<DigestPa
   if (!faculty || faculty.feedbackSubmissions.length === 0) {
     return null;
   }
-
-  const windowEnd = faculty.feedbackSubmissions[0].submittedAt;
-  const windowStart = faculty.feedbackSubmissions[faculty.feedbackSubmissions.length - 1].submittedAt;
 
   const byPhase = new Map<
     string,
@@ -306,8 +328,8 @@ async function buildDigestPayloadForFaculty(facultyId: string): Promise<DigestPa
     publicToken: faculty.publicToken,
     totalResponses: faculty.feedbackSubmissions.length,
     phaseSummaries,
-    windowStart,
-    windowEnd
+    windowStart: window.windowStart,
+    windowEnd: window.windowEnd
   };
 }
 
@@ -340,8 +362,8 @@ function digestEmailHtml(payload: DigestPayload, unsubscribeUrl: string, resubsc
   return `<div style="font-family: Arial, sans-serif; color: #111; max-width: 760px;">
     <h2>Faculty Feedback Digest</h2>
     <p>Hello ${escapeHtml(payload.facultyName)},</p>
-    <p>Here is your anonymized feedback digest grouped by curriculum phase. Exact submission timestamps are intentionally omitted to preserve student anonymity.</p>
-    <p><strong>Total new responses:</strong> ${payload.totalResponses}</p>
+    <p>Here is your anonymized feedback digest covering the past ${DIGEST_WINDOW_MONTHS} months. Exact submission timestamps are intentionally omitted to preserve student anonymity.</p>
+    <p><strong>Total responses in this digest:</strong> ${payload.totalResponses}</p>
     ${sections}
     <hr/>
     <p>Share your personalized QR code with students:</p>
@@ -374,8 +396,8 @@ function digestEmailText(payload: DigestPayload, unsubscribeUrl: string, resubsc
   return [
     `Faculty Feedback Digest for ${payload.facultyName}`,
     "",
-    "This digest is anonymized and excludes exact submission timestamps.",
-    `Total new responses: ${payload.totalResponses}`,
+    `This digest is anonymized and covers the past ${DIGEST_WINDOW_MONTHS} months.`,
+    `Total responses in this digest: ${payload.totalResponses}`,
     "",
     phaseText,
     "",
@@ -395,11 +417,18 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
-async function markSubmissionsAsDigested(facultyId: string, digestHistoryId: string): Promise<number> {
+async function markSubmissionsAsDigested(
+  facultyId: string,
+  digestHistoryId: string,
+  window: DigestWindow
+): Promise<number> {
   const result = await prisma.feedbackSubmission.updateMany({
     where: {
       facultyId,
-      digestedAt: null
+      submittedAt: {
+        gte: window.windowStart,
+        lte: window.windowEnd
+      }
     },
     data: {
       digestedAt: new Date(),
@@ -410,10 +439,27 @@ async function markSubmissionsAsDigested(facultyId: string, digestHistoryId: str
   return result.count;
 }
 
-export async function sendDigestForFaculty(facultyId: string, opts?: { runType?: DigestRunType; createdByAdminId?: string }) {
-  const payload = await buildDigestPayloadForFaculty(facultyId);
+function resolveDigestWindow(opts?: { windowStart?: Date; windowEnd?: Date }): DigestWindow {
+  if (opts?.windowStart && opts?.windowEnd) {
+    return {
+      windowStart: opts.windowStart,
+      windowEnd: opts.windowEnd
+    };
+  }
+
+  return rollingDigestWindow();
+}
+
+export async function sendDigestForFaculty(
+  facultyId: string,
+  opts?: { runType?: DigestRunType; createdByAdminId?: string; windowStart?: Date; windowEnd?: Date }
+) {
+  const runType = opts?.runType ?? DigestRunType.AUTOMATED;
+  const window = resolveDigestWindow(opts);
+  const payload = await buildDigestPayloadForFaculty(facultyId, window);
+
   if (!payload) {
-    return { sent: false, reason: "No unsent submissions" as const };
+    return { sent: false, reason: `No feedback submitted in the last ${DIGEST_WINDOW_MONTHS} months` as const };
   }
 
   const [unsubscribeToken, resubscribeToken, qrDataUrl] = await Promise.all([
@@ -425,7 +471,7 @@ export async function sendDigestForFaculty(facultyId: string, opts?: { runType?:
   const unsubscribeUrl = appUrl(`/api/digest/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`);
   const resubscribeUrl = appUrl(`/api/digest/resubscribe?token=${encodeURIComponent(resubscribeToken)}`);
 
-  const subject = `Department of Medicine feedback digest (${payload.totalResponses} new responses)`;
+  const subject = `Department of Medicine feedback digest (${payload.totalResponses} responses in the last ${DIGEST_WINDOW_MONTHS} months)`;
   const html = digestEmailHtml(payload, unsubscribeUrl, resubscribeUrl, qrDataUrl);
   const text = digestEmailText(payload, unsubscribeUrl, resubscribeUrl);
 
@@ -448,7 +494,7 @@ export async function sendDigestForFaculty(facultyId: string, opts?: { runType?:
   const digestRow = await prisma.digestHistory.create({
     data: {
       facultyId: payload.facultyId,
-      runType: opts?.runType ?? DigestRunType.AUTOMATED,
+      runType,
       windowStart: payload.windowStart,
       windowEnd: payload.windowEnd,
       submissionCount: payload.totalResponses,
@@ -458,7 +504,10 @@ export async function sendDigestForFaculty(facultyId: string, opts?: { runType?:
     }
   });
 
-  const markedCount = await markSubmissionsAsDigested(payload.facultyId, digestRow.id);
+  const markedCount =
+    runType === DigestRunType.AUTOMATED
+      ? await markSubmissionsAsDigested(payload.facultyId, digestRow.id, window)
+      : payload.totalResponses;
 
   return {
     sent: true,
@@ -468,32 +517,37 @@ export async function sendDigestForFaculty(facultyId: string, opts?: { runType?:
 }
 
 export async function runAutomatedDigestCycle() {
-  const facultyIds = await getDigestEligibleFacultyIds();
+  const plans = await getAutomatedDigestPlans();
   const results: Array<{ facultyId: string; sent: boolean; reason?: string }> = [];
 
-  for (const facultyId of facultyIds) {
+  for (const plan of plans) {
     try {
-      const result = await sendDigestForFaculty(facultyId, { runType: DigestRunType.AUTOMATED });
+      const result = await sendDigestForFaculty(plan.facultyId, {
+        runType: DigestRunType.AUTOMATED,
+        windowStart: plan.windowStart,
+        windowEnd: plan.windowEnd
+      });
+
       if (result.sent) {
-        results.push({ facultyId, sent: true });
+        results.push({ facultyId: plan.facultyId, sent: true });
       } else {
-        results.push({ facultyId, sent: false, reason: result.reason });
+        results.push({ facultyId: plan.facultyId, sent: false, reason: result.reason });
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown digest error";
-      results.push({ facultyId, sent: false, reason: message });
+      results.push({ facultyId: plan.facultyId, sent: false, reason: message });
     }
   }
 
   return {
-    checkedFaculty: facultyIds.length,
+    checkedFaculty: plans.length,
     sentCount: results.filter((entry) => entry.sent).length,
     results
   };
 }
 
 export async function previewDigestForFaculty(facultyId: string) {
-  const payload = await buildDigestPayloadForFaculty(facultyId);
+  const payload = await buildDigestPayloadForFaculty(facultyId, rollingDigestWindow());
   if (!payload) {
     return null;
   }

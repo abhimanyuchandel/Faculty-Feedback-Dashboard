@@ -14,16 +14,19 @@
 
 ## Security and privacy model
 - No student auth and no student PII fields in schema.
-- Public submit endpoint uses CAPTCHA and request throttling.
+- Public submit endpoint uses Cloudflare Turnstile CAPTCHA and request throttling.
 - Faculty links use opaque public tokens (`/f/[publicToken]`).
 - Faculty digest email shows only aggregated data grouped by curriculum phase.
 - Unsubscribe/resubscribe uses one-time hashed email tokens.
+- Admin sign-in supports TOTP-based MFA.
 - Admin actions are logged in `audit_logs`.
 
 ## Digest rule implementation
-Digest is eligible for a faculty member when:
-1. At least 4 unsent submissions exist.
-2. OR at least 1 unsent submission exists and the previous digest is older than 180 days.
+Automated digest eligibility is based on schedule, not thresholds:
+1. The first digest becomes eligible 6 months after faculty creation.
+2. Each faculty gets a stable random offset between 1 and 60 days to spread sends out.
+3. After the first cycle, eligibility repeats every 6 months.
+4. A digest is skipped if there was no feedback in that faculty member's prior 6-month window.
 
 ## Scaling notes
 - 1000+ faculty is low-risk with indexed Postgres queries.

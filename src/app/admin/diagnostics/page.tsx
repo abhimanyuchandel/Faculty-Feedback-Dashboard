@@ -14,11 +14,21 @@ export default async function DiagnosticsPage() {
     dbMessage = error instanceof Error ? error.message : "Unknown database error";
   }
 
+  const emailProvider = process.env.EMAIL_PROVIDER ?? "postmark";
   const envChecks: Array<[string, boolean]> = [
     ["DATABASE_URL", Boolean(process.env.DATABASE_URL)],
     ["NEXTAUTH_SECRET", Boolean(process.env.NEXTAUTH_SECRET)],
     ["APP_BASE_URL", Boolean(process.env.APP_BASE_URL)],
+    ["EMAIL_PROVIDER", Boolean(process.env.EMAIL_PROVIDER)],
+    ...(emailProvider === "resend"
+      ? ([
+          ["RESEND_API_KEY", Boolean(process.env.RESEND_API_KEY)],
+          ["RESEND_FROM_EMAIL", Boolean(process.env.RESEND_FROM_EMAIL)]
+        ] as Array<[string, boolean]>)
+      : []),
+    ["TURNSTILE_SITE_KEY", Boolean(process.env.TURNSTILE_SITE_KEY)],
     ["TURNSTILE_SECRET_KEY", Boolean(process.env.TURNSTILE_SECRET_KEY)],
+    ["MFA_ENCRYPTION_KEY", Boolean(process.env.MFA_ENCRYPTION_KEY)],
     ["CRON_SECRET", Boolean(process.env.CRON_SECRET)]
   ];
 
@@ -34,6 +44,7 @@ export default async function DiagnosticsPage() {
 
       <div className="card">
         <h2>Environment Checks</h2>
+        <p className="muted">Resolved email provider: {emailProvider}</p>
         <table className="table">
           <thead>
             <tr>

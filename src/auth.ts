@@ -3,6 +3,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db/prisma";
+import { decryptMfaSecret, verifyTotpCode } from "@/lib/mfa";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -43,9 +44,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        // Placeholder hook for TOTP validation when mfaEnabled = true.
-        if (user.mfaEnabled && !credentials.mfaCode) {
-          return null;
+        if (user.mfaEnabled) {
+          const mfaCode = credentials.mfaCode?.toString() ?? "";
+          if (!mfaCode || !user.mfaSecretEncrypted) {
+            return null;
+          }
+
+          try {
+            const secret = decryptMfaSecret(user.mfaSecretEncrypted);
+            if (!verifyTotpCode(secret, mfaCode)) {
+              return null;
+            }
+          } catch (error) {
+            console.error("[auth] MFA verification failed", error);
+            return null;
+          }
         }
 
         await prisma.user.update({

@@ -82,6 +82,7 @@ export default function AdminLoginPage() {
               className="input"
               value={mfaCode}
               onChange={(event) => setMfaCode(event.target.value)}
+              placeholder="Required only after MFA is enabled"
             />
           </div>
 

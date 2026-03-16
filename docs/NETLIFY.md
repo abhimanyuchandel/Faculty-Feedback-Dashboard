@@ -43,8 +43,7 @@ Set these in Netlify for both Production and Preview unless noted otherwise.
 - `TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA`
 - `CRON_SECRET=<generate a random secret>`
 - `DIGEST_TIMEZONE=America/New_York`
-- `DIGEST_MIN_THRESHOLD=4`
-- `DIGEST_MAX_AGE_DAYS=180`
+- `MFA_ENCRYPTION_KEY=<generate a long random secret>`
 
 ### Optional email providers
 
@@ -126,7 +125,9 @@ After the first successful deploy:
 
 ## Digest automation caveat
 
-The current digest engine is exposed through an internal HTTP route that expects a `POST` with `x-cron-secret`.
+The current digest engine is exposed through an internal HTTP route that accepts `GET` or `POST` with either:
+- `Authorization: Bearer <CRON_SECRET>`
+- `x-cron-secret: <CRON_SECRET>`
 
 Netlify Scheduled Functions:
 

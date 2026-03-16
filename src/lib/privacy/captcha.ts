@@ -5,7 +5,7 @@ type CaptchaResult = {
   score?: number;
 };
 
-export async function verifyCaptcha(token: string): Promise<CaptchaResult> {
+export async function verifyCaptcha(token: string, remoteIp?: string): Promise<CaptchaResult> {
   if (!env.TURNSTILE_SECRET_KEY) {
     // Hosted test environments often omit Turnstile keys until later.
     return { success: true, score: 0.5 };
@@ -14,6 +14,9 @@ export async function verifyCaptcha(token: string): Promise<CaptchaResult> {
   const formData = new URLSearchParams();
   formData.set("secret", env.TURNSTILE_SECRET_KEY);
   formData.set("response", token);
+  if (remoteIp) {
+    formData.set("remoteip", remoteIp);
+  }
 
   const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
     method: "POST",

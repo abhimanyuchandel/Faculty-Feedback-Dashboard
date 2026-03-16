@@ -114,6 +114,10 @@ export function DigestAdminPanel() {
     <div className="grid" style={{ gap: "1rem" }}>
       <div className="card">
         <h2>Digest Engine Controls</h2>
+        <p className="muted">
+          Automated digests run on a six-month cadence from faculty creation, with a stable 1-60 day offset and a
+          six-month feedback lookback window.
+        </p>
         <div className="grid" style={{ gridTemplateColumns: "1fr 1fr auto auto auto", alignItems: "end" }}>
           <div>
             <label className="label">Search faculty (last name/email)</label>
@@ -152,7 +156,7 @@ export function DigestAdminPanel() {
       {preview ? (
         <div className="card">
           <h2>Digest Preview Summary</h2>
-          <p>Total responses in pending batch: {preview.payload.totalResponses}</p>
+          <p>Total responses in the current six-month window: {preview.payload.totalResponses}</p>
           <ul>
             {preview.payload.phaseSummaries.map((phase) => (
               <li key={phase.phaseName}>

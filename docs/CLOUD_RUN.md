@@ -49,8 +49,9 @@ Other required runtime values:
 - `CRON_SECRET=...`
 - `EMAIL_PROVIDER=noop`
 - `DIGEST_TIMEZONE=America/New_York`
-- `DIGEST_MIN_THRESHOLD=4`
-- `DIGEST_MAX_AGE_DAYS=180`
+- `TURNSTILE_SITE_KEY=...`
+- `TURNSTILE_SECRET_KEY=...`
+- `MFA_ENCRYPTION_KEY=...`
 
 ## 3. Deploy the web service
 
@@ -62,10 +63,10 @@ gcloud run deploy faculty-feedback \
   --source . \
   --region us-east1 \
   --allow-unauthenticated \
-  --set-env-vars EMAIL_PROVIDER=noop,DIGEST_TIMEZONE=America/New_York,DIGEST_MIN_THRESHOLD=4,DIGEST_MAX_AGE_DAYS=180 \
+  --set-env-vars EMAIL_PROVIDER=noop,DIGEST_TIMEZONE=America/New_York,TURNSTILE_SITE_KEY=REPLACE_WITH_SITE_KEY \
   --set-env-vars NEXTAUTH_URL=https://REPLACE_WITH_SERVICE_URL,APP_BASE_URL=https://REPLACE_WITH_SERVICE_URL \
   --set-env-vars DATABASE_URL='REPLACE_WITH_6543_TRANSACTION_POOLER_URL' \
-  --set-secrets NEXTAUTH_SECRET=nextauth-secret:latest,CRON_SECRET=cron-secret:latest
+  --set-secrets NEXTAUTH_SECRET=nextauth-secret:latest,CRON_SECRET=cron-secret:latest,TURNSTILE_SECRET_KEY=turnstile-secret:latest,MFA_ENCRYPTION_KEY=mfa-encryption-key:latest
 ```
 
 Notes:
@@ -163,9 +164,10 @@ Validate:
 ## 9. Digest execution
 
 The app still exposes:
-- `POST /api/internal/jobs/digest`
+- `GET|POST /api/internal/jobs/digest`
 
-Required header:
+Required auth:
+- `Authorization: Bearer <CRON_SECRET>` or
 - `x-cron-secret: <CRON_SECRET>`
 
 You can trigger that from:

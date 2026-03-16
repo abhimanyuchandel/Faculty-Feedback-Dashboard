@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
       surveyVersionId: parsed.data.surveyVersionId,
       teachingSessionId: parsed.data.teachingSessionId,
       teachingSessionDate: parsed.data.teachingSessionDate,
+      remoteIp: ip,
       captchaToken: parsed.data.captchaToken,
       answers: parsed.data.answers.map((answer) => ({
         questionId: answer.questionId,

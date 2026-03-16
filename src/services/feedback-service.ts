@@ -10,6 +10,7 @@ export type SubmissionInput = {
   surveyVersionId: string;
   teachingSessionId?: string;
   teachingSessionDate?: string;
+  remoteIp?: string;
   captchaToken: string;
   answers: Array<{
     questionId: string;
@@ -130,7 +131,7 @@ export async function submitAnonymousFeedback(input: SubmissionInput) {
     }
   }
 
-  const captcha = await verifyCaptcha(input.captchaToken);
+  const captcha = await verifyCaptcha(input.captchaToken, input.remoteIp);
   if (!captcha.success) {
     throw new Error("Captcha verification failed");
   }

@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { TurnstileWidget } from "@/components/public/turnstile-widget";
 import {
   GLOBAL_QUESTION_ORDER_SCOPE,
   getQuestionOrderForScope,
@@ -45,6 +46,7 @@ type Props = {
   }>;
   questions: Question[];
   captchaConfigured: boolean;
+  captchaSiteKey: string;
 };
 
 type AnswerValue = string | number | string[] | null;
@@ -56,7 +58,8 @@ export function SurveyForm(props: Props) {
   const [teachingSessionDate, setTeachingSessionDate] = useState("");
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
-  const [captchaToken, setCaptchaToken] = useState("dev-captcha-token");
+  const [captchaToken, setCaptchaToken] = useState(props.captchaConfigured ? "" : "captcha-disabled");
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -187,6 +190,11 @@ export function SurveyForm(props: Props) {
       return;
     }
 
+    if (props.captchaConfigured && !captchaToken) {
+      setError("Please complete the CAPTCHA challenge.");
+      return;
+    }
+
     for (const question of visibleQuestions) {
       if (!question.required) {
         continue;
@@ -243,6 +251,10 @@ export function SurveyForm(props: Props) {
 
       router.push("/thanks");
     } catch (err) {
+      if (props.captchaConfigured) {
+        setCaptchaToken("");
+        setCaptchaResetKey((value) => value + 1);
+      }
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setSubmitting(false);
@@ -402,16 +414,15 @@ export function SurveyForm(props: Props) {
 
       {props.captchaConfigured ? (
         <div style={{ marginBottom: "1rem" }}>
-          <label className="label" htmlFor="captcha-token">
-            CAPTCHA token
+          <label className="label">
+            CAPTCHA verification
           </label>
-          <input
-            id="captcha-token"
-            className="input"
-            value={captchaToken}
-            onChange={(event) => setCaptchaToken(event.target.value)}
-            required
+          <TurnstileWidget
+            siteKey={props.captchaSiteKey}
+            resetKey={captchaResetKey}
+            onTokenChange={setCaptchaToken}
           />
+          <p className="muted">Complete the challenge before submitting anonymous feedback.</p>
         </div>
       ) : (
         <div className="alert warn" style={{ marginBottom: "1rem" }}>

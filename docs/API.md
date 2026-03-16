@@ -29,4 +29,4 @@
 - `POST /api/admin/digest/test/[facultyId]`
 
 ## Internal routes
-- `POST /api/internal/jobs/digest` (requires `x-cron-secret`)
+- `GET|POST /api/internal/jobs/digest` (requires `Authorization: Bearer <CRON_SECRET>` or `x-cron-secret`)
