@@ -332,7 +332,6 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
     },
     recentSubmissions: recentSubmissionsRaw.map((submission) => ({
       ...submission,
-      location: submissionLocation(submission),
       year: submission.submissionDate.getUTCFullYear()
     }))
   };

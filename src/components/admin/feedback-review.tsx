@@ -21,7 +21,6 @@ type Overview = {
   recentSubmissions: Array<{
     id: string;
     submittedAt: string;
-    location: string;
     year: number;
     faculty: { firstName: string; lastName: string; primaryEmail: string };
     curriculumPhase: { name: string };
@@ -226,7 +225,7 @@ export function FeedbackReviewPanel() {
               <li key={submission.id} style={{ marginBottom: "0.7rem" }}>
                 <strong>{new Date(submission.submittedAt).toLocaleString()}</strong>:{" "}
                 {submission.faculty.firstName} {submission.faculty.lastName} | {submission.curriculumPhase.name} |{" "}
-                {submission.location} | {submission.answers.length} answers
+                {submission.answers.length} answers
               </li>
             ))}
           </ul>
