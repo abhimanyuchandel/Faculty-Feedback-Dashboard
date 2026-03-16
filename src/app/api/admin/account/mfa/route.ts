@@ -51,7 +51,12 @@ export async function POST(request: NextRequest) {
       return badRequest("currentPassword is required");
     }
 
-    const passwordOk = await bcrypt.compare(body.currentPassword, authResult.user.passwordHash);
+    const passwordHash = authResult.user.passwordHash;
+    if (!passwordHash) {
+      return unauthorized("Account is not configured for password sign-in");
+    }
+
+    const passwordOk = await bcrypt.compare(body.currentPassword, passwordHash);
     if (!passwordOk) {
       return unauthorized("Current password is incorrect");
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -32,9 +32,9 @@ export function TurnstileWidget({ siteKey, resetKey, onTokenChange }: Props) {
   const widgetIdRef = useRef<string | null>(null);
   const [scriptReady, setScriptReady] = useState(false);
 
-  const renderWidget = useEffectEvent(() => {
-    if (!containerRef.current || !window.turnstile || !siteKey) {
-      return;
+  useEffect(() => {
+    if (!containerRef.current || !window.turnstile || !siteKey || !scriptReady) {
+      return undefined;
     }
 
     if (widgetIdRef.current) {
@@ -50,10 +50,6 @@ export function TurnstileWidget({ siteKey, resetKey, onTokenChange }: Props) {
       "expired-callback": () => onTokenChange(""),
       "error-callback": () => onTokenChange("")
     });
-  });
-
-  useEffect(() => {
-    renderWidget();
 
     return () => {
       if (widgetIdRef.current && window.turnstile) {
@@ -61,7 +57,7 @@ export function TurnstileWidget({ siteKey, resetKey, onTokenChange }: Props) {
         widgetIdRef.current = null;
       }
     };
-  }, [renderWidget, resetKey, scriptReady, siteKey]);
+  }, [onTokenChange, resetKey, scriptReady, siteKey]);
 
   return (
     <>

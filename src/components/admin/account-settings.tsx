@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type AccountUser = {
   id: string;
@@ -61,7 +61,7 @@ export function AccountSettingsPanel() {
 
   const canManageAdmins = useMemo(() => Boolean(user?.roles.includes("admin")), [user?.roles]);
 
-  async function loadAdminUsers() {
+  const loadAdminUsers = useCallback(async () => {
     setLoadingAdminUsers(true);
     const response = await fetch("/api/admin/admin-users");
     const body = (await response.json()) as { users?: ManagedAdminUser[]; message?: string };
@@ -74,9 +74,9 @@ export function AccountSettingsPanel() {
     }
 
     setAdminUsers(body.users ?? []);
-  }
+  }, []);
 
-  async function loadAccount() {
+  const loadAccount = useCallback(async () => {
     const response = await fetch("/api/admin/account");
     const body = (await response.json()) as { user?: AccountUser | null; message?: string };
 
@@ -92,11 +92,11 @@ export function AccountSettingsPanel() {
     if (body.user.roles.includes("admin")) {
       await loadAdminUsers();
     }
-  }
+  }, [loadAdminUsers]);
 
   useEffect(() => {
     void loadAccount();
-  }, []);
+  }, [loadAccount]);
 
   async function save() {
     setError(null);
