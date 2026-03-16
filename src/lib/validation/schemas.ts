@@ -14,6 +14,10 @@ export const facultySearchSchema = z.object({
   q: z.string().trim().min(1).max(120)
 });
 
+export const facultyEnrollmentInviteSchema = z.object({
+  primaryEmail: z.string().trim().email().toLowerCase()
+});
+
 export const feedbackAnswerSchema = z.object({
   questionId: z.string().cuid(),
   questionType: z.nativeEnum(QuestionType),

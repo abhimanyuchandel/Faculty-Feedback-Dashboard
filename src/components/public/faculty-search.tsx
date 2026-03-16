@@ -18,6 +18,10 @@ export function FacultySearch() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   async function runSearch() {
     if (!query.trim()) {
@@ -47,10 +51,66 @@ export function FacultySearch() {
     }
   }
 
+  async function sendEnrollmentInvite() {
+    setInviteMessage(null);
+    setInviteError(null);
+
+    if (!inviteEmail.trim()) {
+      setInviteError("Enter the faculty member's email address.");
+      return;
+    }
+
+    setInviteSubmitting(true);
+
+    try {
+      const response = await fetch("/api/public/enroll/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          primaryEmail: inviteEmail
+        })
+      });
+
+      const data = (await response.json()) as { message?: string };
+      if (!response.ok) {
+        throw new Error(data.message ?? "Failed to send enrollment email");
+      }
+
+      setInviteMessage(data.message ?? "Enrollment email sent.");
+      setInviteEmail("");
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setInviteSubmitting(false);
+    }
+  }
+
   return (
     <div className="card">
       <h1>Find Faculty</h1>
       <p className="muted">Search by first name, last name, primary email, or secondary email.</p>
+      <div style={{ marginTop: "-0.2rem", marginBottom: "1rem" }}>
+        <label className="label" htmlFor="faculty-invite-email">
+          Can't find your faculty member? Send them an email to enroll
+        </label>
+        <div className="grid faculty-search-form">
+          <div>
+            <input
+              id="faculty-invite-email"
+              className="input"
+              type="email"
+              placeholder="faculty@example.edu"
+              value={inviteEmail}
+              onChange={(event) => setInviteEmail(event.target.value)}
+            />
+          </div>
+          <button type="button" className="btn ghost" onClick={sendEnrollmentInvite} disabled={inviteSubmitting}>
+            {inviteSubmitting ? "Sending..." : "Send enrollment email"}
+          </button>
+        </div>
+        {inviteMessage ? <p className="alert success">{inviteMessage}</p> : null}
+        {inviteError ? <p className="alert error">{inviteError}</p> : null}
+      </div>
 
       <div className="grid faculty-search-form">
         <div>

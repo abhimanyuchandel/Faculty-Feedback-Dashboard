@@ -1,9 +1,11 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 export default function EnrollFacultyPage() {
+  const searchParams = useSearchParams();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [primaryEmail, setPrimaryEmail] = useState("");
@@ -12,6 +14,13 @@ export default function EnrollFacultyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const invitedEmail = searchParams.get("primaryEmail");
+    if (invitedEmail) {
+      setPrimaryEmail(invitedEmail);
+    }
+  }, [searchParams]);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();

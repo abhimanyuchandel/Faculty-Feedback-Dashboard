@@ -4,6 +4,8 @@ import {
   Prisma
 } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { appUrl } from "@/lib/app-url";
+import { sendTransactionalEmail } from "@/lib/email/provider";
 import { generateOpaqueToken } from "@/lib/security";
 import { recordAuditLog } from "@/lib/audit";
 
@@ -93,6 +95,54 @@ export async function createFacultyEnrollmentRequest(input: EnrollmentRequestInp
     requested: true as const,
     alreadyEnrolled: false as const,
     request
+  };
+}
+
+export async function sendFacultyEnrollmentInviteEmail(primaryEmailInput: string) {
+  const primaryEmail = normalizeEmail(primaryEmailInput);
+  const enrollUrl = appUrl(`/enroll?primaryEmail=${encodeURIComponent(primaryEmail)}`);
+
+  const subject = "Please enroll in Faculty Teaching Feedback";
+  const text = [
+    "Hello,",
+    "",
+    "A student was unable to find you in the Faculty Teaching Feedback system.",
+    "",
+    "If you would like to be added, please use the enrollment form below and provide:",
+    "- First Name",
+    "- Last Name",
+    "- Primary Email",
+    "- Secondary Email (optional)",
+    "",
+    `Enrollment form: ${enrollUrl}`,
+    "",
+    "Thank you."
+  ].join("\n");
+
+  const html = `<div style="font-family: Arial, sans-serif; color: #111; max-width: 640px;">
+    <p>Hello,</p>
+    <p>A student was unable to find you in the Faculty Teaching Feedback system.</p>
+    <p>If you would like to be added, please use the enrollment form below and provide:</p>
+    <ul>
+      <li>First Name</li>
+      <li>Last Name</li>
+      <li>Primary Email</li>
+      <li>Secondary Email (optional)</li>
+    </ul>
+    <p><a href="${enrollUrl}">Complete the faculty enrollment form</a></p>
+    <p>Thank you.</p>
+  </div>`;
+
+  const providerMessageId = await sendTransactionalEmail({
+    to: primaryEmail,
+    subject,
+    html,
+    text
+  });
+
+  return {
+    primaryEmail,
+    providerMessageId
   };
 }
 

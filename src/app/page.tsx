@@ -36,7 +36,7 @@ export default function HomePage() {
               <li>Complete current survey</li>
               <li>Submit anonymously</li>
             </ol>
-            <p className="muted">Faculty receive aggregate digest emails only.</p>
+            <p className="muted">Faculty receive aggregate digest emails every 6 months.</p>
           </article>
         </section>
       </main>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Overview = {
   count: number;
@@ -9,9 +9,6 @@ type Overview = {
   byYear: Array<{ year: number; count: number }>;
   breakdown: Array<{
     year: number;
-    facultyId: string;
-    facultyName: string;
-    facultyEmail: string;
     curriculumPhaseId: string;
     curriculumPhaseName: string;
     submissionCount: number;
@@ -68,7 +65,7 @@ export function FeedbackReviewPanel() {
     });
   }, [data?.filters.faculty, facultySearch]);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setMessage(null);
 
@@ -83,11 +80,11 @@ export function FeedbackReviewPanel() {
 
     setData(body as Overview);
     setLoading(false);
-  }
+  }, [queryString]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   return (
     <div className="grid" style={{ gap: "1rem" }}>
@@ -192,28 +189,23 @@ export function FeedbackReviewPanel() {
       </div>
 
       <div className="card">
-        <h2>Report Breakdown (Phase/Faculty/Year)</h2>
+        <h2>Report Breakdown (Curriculum Phase/Year)</h2>
         {loading || !data ? (
           <p>Loading...</p>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Year</th>
                 <th>Phase</th>
-                <th>Faculty</th>
-                <th>Submissions</th>
+                <th>Calendar Year</th>
+                <th>Total Evaluations</th>
               </tr>
             </thead>
             <tbody>
               {data.breakdown.map((row) => (
-                <tr key={`${row.year}-${row.facultyId}-${row.curriculumPhaseId}`}>
-                  <td>{row.year}</td>
+                <tr key={`${row.year}-${row.curriculumPhaseId}`}>
                   <td>{row.curriculumPhaseName}</td>
-                  <td>
-                    {row.facultyName}
-                    <div className="muted">{row.facultyEmail}</div>
-                  </td>
+                  <td>{row.year}</td>
                   <td>{row.submissionCount}</td>
                 </tr>
               ))}
@@ -223,35 +215,21 @@ export function FeedbackReviewPanel() {
       </div>
 
       <div className="card">
-        <h2>Recent submissions (admin only)</h2>
-        <p className="muted">Faculty never see raw submissions or exact timestamps.</p>
+        <h2>Recent submissions</h2>
         {loading || !data ? (
           <p>Loading...</p>
+        ) : data.recentSubmissions.length === 0 ? (
+          <p>No submissions found for the current filters.</p>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Faculty</th>
-                <th>Phase</th>
-                <th>Location</th>
-                <th>Answers</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.recentSubmissions.map((submission) => (
-                <tr key={submission.id}>
-                  <td>{new Date(submission.submittedAt).toLocaleDateString()}</td>
-                  <td>
-                    {submission.faculty.firstName} {submission.faculty.lastName}
-                  </td>
-                  <td>{submission.curriculumPhase.name}</td>
-                  <td>{submission.location}</td>
-                  <td>{submission.answers.length}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>
+            {data.recentSubmissions.map((submission) => (
+              <li key={submission.id} style={{ marginBottom: "0.7rem" }}>
+                <strong>{new Date(submission.submittedAt).toLocaleString()}</strong>:{" "}
+                {submission.faculty.firstName} {submission.faculty.lastName} | {submission.curriculumPhase.name} |{" "}
+                {submission.location} | {submission.answers.length} answers
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>

@@ -81,14 +81,18 @@ export function DigestAdminPanel() {
       method: "POST"
     });
 
-    const data = (await response.json()) as { sent?: boolean; message?: string };
+    const data = (await response.json()) as { sent?: boolean; reason?: string; message?: string; submissionCount?: number };
 
     if (!response.ok) {
       setMessage(data.message ?? "Failed to send test digest");
       return;
     }
 
-    setMessage(data.sent ? "Test digest sent" : "No pending submissions for digest");
+    setMessage(
+      data.sent
+        ? `Test digest sent${typeof data.submissionCount === "number" ? ` (${data.submissionCount} responses included)` : ""}.`
+        : data.reason ?? "No test digest was sent."
+    );
   }
 
   async function loadPreview() {
@@ -114,10 +118,6 @@ export function DigestAdminPanel() {
     <div className="grid" style={{ gap: "1rem" }}>
       <div className="card">
         <h2>Digest Engine Controls</h2>
-        <p className="muted">
-          Automated digests run on a six-month cadence from faculty creation, with a stable 1-60 day offset and a
-          six-month feedback lookback window.
-        </p>
         <div className="grid" style={{ gridTemplateColumns: "1fr 1fr auto auto auto", alignItems: "end" }}>
           <div>
             <label className="label">Search faculty (last name/email)</label>

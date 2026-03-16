@@ -233,7 +233,7 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
     prisma.feedbackSubmission.findMany({
       where,
       orderBy: { submittedAt: "desc" },
-      take: 100,
+      take: 15,
       include: {
         faculty: {
           select: { id: true, firstName: true, lastName: true, primaryEmail: true }
@@ -266,9 +266,6 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
     string,
     {
       year: number;
-      facultyId: string;
-      facultyName: string;
-      facultyEmail: string;
       curriculumPhaseId: string;
       curriculumPhaseName: string;
       submissionCount: number;
@@ -294,11 +291,7 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
       });
     }
 
-    const breakdownKey = [
-      year,
-      submission.faculty.id,
-      submission.curriculumPhase.id
-    ].join("|");
+    const breakdownKey = [year, submission.curriculumPhase.id].join("|");
 
     const existingBreakdown = breakdownMap.get(breakdownKey);
     if (existingBreakdown) {
@@ -306,9 +299,6 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
     } else {
       breakdownMap.set(breakdownKey, {
         year,
-        facultyId: submission.faculty.id,
-        facultyName: `${submission.faculty.firstName} ${submission.faculty.lastName}`,
-        facultyEmail: submission.faculty.primaryEmail,
         curriculumPhaseId: submission.curriculumPhase.id,
         curriculumPhaseName: submission.curriculumPhase.name,
         submissionCount: 1
