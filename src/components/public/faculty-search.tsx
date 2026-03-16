@@ -88,7 +88,7 @@ export function FacultySearch() {
   return (
     <div className="card">
       <h1>Find Faculty</h1>
-      <p className="muted">Search by first name, last name, primary email, or secondary email.</p>
+      <p className="muted">Search by full last name, primary email, or secondary email.</p>
 
       <div className="grid faculty-search-form">
         <div>
@@ -98,7 +98,7 @@ export function FacultySearch() {
           <input
             id="faculty-query"
             className="input"
-            placeholder="Type a name or email"
+            placeholder="Enter full last name or full email"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {

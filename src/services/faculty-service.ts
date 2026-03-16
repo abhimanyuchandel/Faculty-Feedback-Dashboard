@@ -88,47 +88,37 @@ export async function searchFacultyPublic(query: string, limit = 20) {
     return [];
   }
 
-  const wildcard = `%${q}%`;
+  const normalizedEmail = q.toLowerCase();
 
-  return prisma.$queryRaw<
-    {
-      id: string;
-      first_name: string;
-      last_name: string;
-      primary_email: string;
-      secondary_email: string | null;
-      public_token: string;
-      rank: number;
-    }[]
-  >(Prisma.sql`
-    SELECT
-      f.id,
-      f.first_name,
-      f.last_name,
-      f.primary_email,
-      f.secondary_email,
-      f.public_token,
-      GREATEST(
-        similarity(f.first_name, ${q}),
-        similarity(f.last_name, ${q}),
-        similarity(f.primary_email, ${q}),
-        similarity(COALESCE(f.secondary_email, ''), ${q})
-      ) AS rank
-    FROM faculty f
-    WHERE f.active_status = true
-      AND (
-        f.first_name ILIKE ${wildcard}
-        OR f.last_name ILIKE ${wildcard}
-        OR f.primary_email ILIKE ${wildcard}
-        OR COALESCE(f.secondary_email, '') ILIKE ${wildcard}
-        OR similarity(f.first_name, ${q}) > 0.2
-        OR similarity(f.last_name, ${q}) > 0.2
-        OR similarity(f.primary_email, ${q}) > 0.2
-        OR similarity(COALESCE(f.secondary_email, ''), ${q}) > 0.2
-      )
-    ORDER BY rank DESC, f.last_name ASC
-    LIMIT ${limit};
-  `);
+  return prisma.faculty.findMany({
+    where: {
+      activeStatus: true,
+      OR: [
+        { lastName: { equals: q, mode: Prisma.QueryMode.insensitive } },
+        { primaryEmail: { equals: normalizedEmail, mode: Prisma.QueryMode.insensitive } },
+        { secondaryEmail: { equals: normalizedEmail, mode: Prisma.QueryMode.insensitive } }
+      ]
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    take: limit,
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      primaryEmail: true,
+      secondaryEmail: true,
+      publicToken: true
+    }
+  }).then((rows) =>
+    rows.map((row) => ({
+      id: row.id,
+      first_name: row.firstName,
+      last_name: row.lastName,
+      primary_email: row.primaryEmail,
+      secondary_email: row.secondaryEmail,
+      public_token: row.publicToken
+    }))
+  );
 }
 
 export async function listFaculty(params?: {
