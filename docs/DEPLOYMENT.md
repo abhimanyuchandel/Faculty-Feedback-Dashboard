@@ -10,7 +10,7 @@ The current primary deployment path for this repository is:
 - CAPTCHA: Cloudflare Turnstile
 - Scheduled digests: Vercel cron
 
-The repository still includes Cloudflare/OpenNext support plus reference guides for Netlify and Cloud Run, but those are alternate paths rather than the recommended production default.
+Alternate deployment paths are documented separately under [deploy-examples](../deploy-examples/README.md). The Cloudflare/OpenNext root config files remain in place only because that toolchain expects root-level filenames.
 
 ## Required services
 
@@ -128,7 +128,7 @@ The route accepts either:
 
 ## Alternate deployment references
 
-- [Netlify reference](/Users/abhichandel/Documents/Faculty feedback application/docs/NETLIFY.md)
-- [Cloud Run reference](/Users/abhichandel/Documents/Faculty feedback application/docs/CLOUD_RUN.md)
-
-Cloudflare/OpenNext configuration files also remain in the repository for an alternate worker deployment path.
+- [Deployment examples index](../deploy-examples/README.md)
+- [Netlify reference](../deploy-examples/netlify/README.md)
+- [Cloud Run reference](../deploy-examples/cloud-run/README.md)
+- [Cloudflare/OpenNext note](../deploy-examples/cloudflare/README.md)

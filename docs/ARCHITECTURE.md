@@ -22,7 +22,7 @@
 - CAPTCHA: Cloudflare Turnstile
 - Scheduled digest job: Vercel cron calling `/api/internal/jobs/digest`
 
-Cloudflare/OpenNext configuration files remain in the repository as an alternate deployment path.
+Alternate deployment guides live under [deploy-examples](../deploy-examples/README.md). Cloudflare/OpenNext config files remain at the repository root because that worker toolchain expects root-level filenames.
 
 ## Data stored by the application
 
@@ -39,7 +39,7 @@ Stored fields include:
 - digest subscription status
 - public feedback token
 
-Source: [schema.prisma](/Users/abhichandel/Documents/Faculty feedback application/prisma/schema.prisma#L51)
+Source: [schema.prisma](../prisma/schema.prisma#L51)
 
 ### Feedback submissions
 
@@ -56,7 +56,7 @@ Stored fields include:
 - CAPTCHA score
 - per-question answers, including free text
 
-Source: [schema.prisma](/Users/abhichandel/Documents/Faculty feedback application/prisma/schema.prisma#L151)
+Source: [schema.prisma](../prisma/schema.prisma#L151)
 
 ### Admin/auth data
 
@@ -70,7 +70,7 @@ Stored fields include:
 - password reset token hashes
 - administrator role assignment
 
-Source: [schema.prisma](/Users/abhichandel/Documents/Faculty feedback application/prisma/schema.prisma#L266)
+Source: [schema.prisma](../prisma/schema.prisma#L266)
 
 ### Audit and enrollment workflow data
 
@@ -82,9 +82,9 @@ Stored fields include:
 
 Sources:
 
-- [schema.prisma](/Users/abhichandel/Documents/Faculty feedback application/prisma/schema.prisma#L231)
-- [schema.prisma](/Users/abhichandel/Documents/Faculty feedback application/prisma/schema.prisma#L290)
-- [schema.prisma](/Users/abhichandel/Documents/Faculty feedback application/prisma/schema.prisma#L335)
+- [schema.prisma](../prisma/schema.prisma#L231)
+- [schema.prisma](../prisma/schema.prisma#L290)
+- [schema.prisma](../prisma/schema.prisma#L335)
 
 ## Public surface area
 
@@ -97,10 +97,10 @@ Sources:
 
 Sources:
 
-- [faculty-search.tsx](/Users/abhichandel/Documents/Faculty feedback application/src/components/public/faculty-search.tsx)
-- [route.ts](/Users/abhichandel/Documents/Faculty feedback application/src/app/api/public/feedback/route.ts#L12)
-- [captcha.ts](/Users/abhichandel/Documents/Faculty feedback application/src/lib/privacy/captcha.ts#L8)
-- [rate-limit.ts](/Users/abhichandel/Documents/Faculty feedback application/src/lib/rate-limit.ts#L8)
+- [faculty-search.tsx](../src/components/public/faculty-search.tsx)
+- [route.ts](../src/app/api/public/feedback/route.ts#L12)
+- [captcha.ts](../src/lib/privacy/captcha.ts#L8)
+- [rate-limit.ts](../src/lib/rate-limit.ts#L8)
 
 ### Current public search behavior
 
@@ -111,9 +111,9 @@ Sources:
 
 Sources:
 
-- [faculty-service.ts](/Users/abhichandel/Documents/Faculty feedback application/src/services/faculty-service.ts#L84)
-- [route.ts](/Users/abhichandel/Documents/Faculty feedback application/src/app/api/public/faculty/search/route.ts#L12)
-- [faculty-search.tsx](/Users/abhichandel/Documents/Faculty feedback application/src/components/public/faculty-search.tsx#L90)
+- [faculty-service.ts](../src/services/faculty-service.ts#L84)
+- [route.ts](../src/app/api/public/faculty/search/route.ts#L12)
+- [faculty-search.tsx](../src/components/public/faculty-search.tsx#L90)
 
 ## Admin security model
 
@@ -125,10 +125,10 @@ Sources:
 
 Sources:
 
-- [middleware.ts](/Users/abhichandel/Documents/Faculty feedback application/middleware.ts#L4)
-- [auth.ts](/Users/abhichandel/Documents/Faculty feedback application/src/auth.ts#L8)
-- [mfa.ts](/Users/abhichandel/Documents/Faculty feedback application/src/lib/mfa.ts#L71)
-- [admin-auth-service.ts](/Users/abhichandel/Documents/Faculty feedback application/src/services/admin-auth-service.ts#L9)
+- [middleware.ts](../middleware.ts#L4)
+- [auth.ts](../src/auth.ts#L8)
+- [mfa.ts](../src/lib/mfa.ts#L71)
+- [admin-auth-service.ts](../src/services/admin-auth-service.ts#L9)
 
 ## Feedback privacy model
 
@@ -139,9 +139,9 @@ Sources:
 
 Sources:
 
-- [redaction.ts](/Users/abhichandel/Documents/Faculty feedback application/src/lib/privacy/redaction.ts#L1)
-- [feedback-service.ts](/Users/abhichandel/Documents/Faculty feedback application/src/services/feedback-service.ts#L190)
-- [digest-service.ts](/Users/abhichandel/Documents/Faculty feedback application/src/services/digest-service.ts#L336)
+- [redaction.ts](../src/lib/privacy/redaction.ts#L1)
+- [feedback-service.ts](../src/services/feedback-service.ts#L190)
+- [digest-service.ts](../src/services/digest-service.ts#L336)
 
 ## Digest behavior
 
@@ -153,9 +153,9 @@ Sources:
 
 Sources:
 
-- [digest-schedule.ts](/Users/abhichandel/Documents/Faculty feedback application/src/lib/digest-schedule.ts#L4)
-- [digest-service.ts](/Users/abhichandel/Documents/Faculty feedback application/src/services/digest-service.ts#L520)
-- [vercel.json](/Users/abhichandel/Documents/Faculty feedback application/vercel.json#L1)
+- [digest-schedule.ts](../src/lib/digest-schedule.ts#L4)
+- [digest-service.ts](../src/services/digest-service.ts#L520)
+- [vercel.json](../vercel.json#L1)
 
 ## Current policy/compliance considerations
 

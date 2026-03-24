@@ -10,7 +10,7 @@ Next.js application for collecting anonymous student feedback about USUHS Depart
 - Bot protection: Cloudflare Turnstile
 - Admin auth: NextAuth credentials with optional TOTP MFA
 
-The repository still includes Cloudflare/OpenNext, Netlify, and Cloud Run support files for alternate deployments, but the primary production path is Vercel.
+The primary production path is Vercel. Alternate deployment guidance now lives under `deploy-examples/`, and the remaining Cloudflare/OpenNext root config files are kept only for that optional worker path.
 
 ## Core capabilities
 
@@ -64,22 +64,23 @@ Commands:
 
 ## Documentation
 
-- [Architecture](/Users/abhichandel/Documents/Faculty feedback application/docs/ARCHITECTURE.md)
-- [Deployment](/Users/abhichandel/Documents/Faculty feedback application/docs/DEPLOYMENT.md)
-- [API Summary](/Users/abhichandel/Documents/Faculty feedback application/docs/API.md)
-- [Netlify reference](/Users/abhichandel/Documents/Faculty feedback application/docs/NETLIFY.md)
-- [Cloud Run reference](/Users/abhichandel/Documents/Faculty feedback application/docs/CLOUD_RUN.md)
-- [Reference materials](/Users/abhichandel/Documents/Faculty feedback application/docs/reference-materials/README.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Deployment](docs/DEPLOYMENT.md)
+- [API Summary](docs/API.md)
+- [Reference materials](docs/reference-materials/README.md)
+- [Deployment examples](deploy-examples/README.md)
 
 ## Repository layout
 
 - `src/`: Next.js pages, route handlers, shared UI components, and application services
 - `prisma/`: schema, migrations, and seed script
 - `docs/`: architecture, deployment guides, API summary, and non-runtime reference materials
+- `deploy-examples/`: alternate deployment guides and non-primary platform config examples
 - `tests/`: unit, integration, and end-to-end tests
-- root config files: Next.js, Prisma, Vercel, Cloudflare/OpenNext, Netlify, Playwright, and Vitest
+- root config files: Next.js, Prisma, Vercel, Playwright, Vitest, and the legacy Cloudflare/OpenNext worker config
 
 ## Notes on organization
 
-- The production deployment path is Vercel, but Cloudflare/OpenNext, Netlify, and Cloud Run files stay in the repo as alternate deployment references.
+- The production deployment path is Vercel, while alternate deployment guides are intentionally separated under `deploy-examples/`.
+- The Cloudflare/OpenNext config remains at the repo root because that toolchain expects root-level filenames.
 - Survey PDFs and similar planning artifacts live under `docs/reference-materials/` so the repo root stays focused on app code and config.

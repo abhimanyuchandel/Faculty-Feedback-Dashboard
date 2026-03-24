@@ -58,7 +58,7 @@ Other required runtime values:
 From the repo root:
 
 ```bash
-cd "/Users/abhichandel/Documents/Faculty feedback application"
+cd /path/to/repo
 gcloud run deploy faculty-feedback \
   --source . \
   --region us-east1 \
@@ -71,7 +71,7 @@ gcloud run deploy faculty-feedback \
 
 Notes:
 - If you are not using Secret Manager yet, you can temporarily replace `--set-secrets` with `--set-env-vars`, but keep in mind Google recommends Secret Manager for secrets.
-- Cloud Run uses the Dockerfile in this repository automatically.
+- Cloud Run uses the repository-root `Dockerfile` automatically.
 
 ## 4. Update the service URL values
 

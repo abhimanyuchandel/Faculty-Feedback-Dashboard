@@ -14,12 +14,24 @@ export default async function DiagnosticsPage() {
     dbMessage = error instanceof Error ? error.message : "Unknown database error";
   }
 
-  const emailProvider = process.env.EMAIL_PROVIDER ?? "postmark";
+  const emailProvider = process.env.EMAIL_PROVIDER ?? "noop";
   const envChecks: Array<[string, boolean]> = [
     ["DATABASE_URL", Boolean(process.env.DATABASE_URL)],
     ["NEXTAUTH_SECRET", Boolean(process.env.NEXTAUTH_SECRET)],
     ["APP_BASE_URL", Boolean(process.env.APP_BASE_URL)],
     ["EMAIL_PROVIDER", Boolean(process.env.EMAIL_PROVIDER)],
+    ...(emailProvider === "postmark"
+      ? ([
+          ["POSTMARK_API_TOKEN", Boolean(process.env.POSTMARK_API_TOKEN)],
+          ["POSTMARK_SENDER_EMAIL", Boolean(process.env.POSTMARK_SENDER_EMAIL)]
+        ] as Array<[string, boolean]>)
+      : []),
+    ...(emailProvider === "sendgrid"
+      ? ([
+          ["SENDGRID_API_KEY", Boolean(process.env.SENDGRID_API_KEY)],
+          ["SENDGRID_FROM_EMAIL", Boolean(process.env.SENDGRID_FROM_EMAIL)]
+        ] as Array<[string, boolean]>)
+      : []),
     ...(emailProvider === "resend"
       ? ([
           ["RESEND_API_KEY", Boolean(process.env.RESEND_API_KEY)],

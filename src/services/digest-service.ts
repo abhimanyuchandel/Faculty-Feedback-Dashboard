@@ -46,7 +46,15 @@ type DigestWindow = {
   windowEnd: Date;
 };
 
+type AutomatedDigestPlan = {
+  facultyId: string;
+  windowStart: Date;
+  windowEnd: Date;
+  cycleDueAt: Date;
+};
+
 const ENROLL_COLLEAGUE_URL = appUrl("/enroll");
+const AUTOMATED_DIGEST_BATCH_SIZE = 5;
 
 function monthYearLabel(date: Date): string {
   return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
@@ -186,7 +194,7 @@ async function getAutomatedDigestPlans(asOf = new Date()) {
     }
   });
 
-  const plans: Array<{ facultyId: string; windowStart: Date; windowEnd: Date; cycleDueAt: Date }> = [];
+  const dueCandidates: AutomatedDigestPlan[] = [];
 
   for (const faculty of candidates) {
     const scheduledWindow = latestScheduledDigestWindow(faculty.createdAt, faculty.publicToken, asOf);
@@ -199,21 +207,7 @@ async function getAutomatedDigestPlans(asOf = new Date()) {
       continue;
     }
 
-    const recentSubmissionCount = await prisma.feedbackSubmission.count({
-      where: {
-        facultyId: faculty.id,
-        submittedAt: {
-          gte: scheduledWindow.windowStart,
-          lte: scheduledWindow.windowEnd
-        }
-      }
-    });
-
-    if (recentSubmissionCount === 0) {
-      continue;
-    }
-
-    plans.push({
+    dueCandidates.push({
       facultyId: faculty.id,
       windowStart: scheduledWindow.windowStart,
       windowEnd: scheduledWindow.windowEnd,
@@ -221,7 +215,51 @@ async function getAutomatedDigestPlans(asOf = new Date()) {
     });
   }
 
-  return plans;
+  if (dueCandidates.length === 0) {
+    return [];
+  }
+
+  const earliestWindowStart = dueCandidates.reduce(
+    (earliest, candidate) => (candidate.windowStart < earliest ? candidate.windowStart : earliest),
+    dueCandidates[0].windowStart
+  );
+  const latestWindowEnd = dueCandidates.reduce(
+    (latest, candidate) => (candidate.windowEnd > latest ? candidate.windowEnd : latest),
+    dueCandidates[0].windowEnd
+  );
+
+  const recentSubmissions = await prisma.feedbackSubmission.findMany({
+    where: {
+      facultyId: {
+        in: dueCandidates.map((candidate) => candidate.facultyId)
+      },
+      submittedAt: {
+        gte: earliestWindowStart,
+        lte: latestWindowEnd
+      }
+    },
+    select: {
+      facultyId: true,
+      submittedAt: true
+    }
+  });
+
+  const submissionsByFaculty = new Map<string, Date[]>();
+  for (const submission of recentSubmissions) {
+    const existing = submissionsByFaculty.get(submission.facultyId);
+    if (existing) {
+      existing.push(submission.submittedAt);
+      continue;
+    }
+
+    submissionsByFaculty.set(submission.facultyId, [submission.submittedAt]);
+  }
+
+  return dueCandidates.filter((candidate) =>
+    (submissionsByFaculty.get(candidate.facultyId) ?? []).some(
+      (submittedAt) => submittedAt >= candidate.windowStart && submittedAt <= candidate.windowEnd
+    )
+  );
 }
 
 async function buildDigestPayloadForFaculty(facultyId: string, window: DigestWindow): Promise<DigestPayload | null> {
@@ -521,23 +559,30 @@ export async function runAutomatedDigestCycle() {
   const plans = await getAutomatedDigestPlans();
   const results: Array<{ facultyId: string; sent: boolean; reason?: string }> = [];
 
-  for (const plan of plans) {
-    try {
-      const result = await sendDigestForFaculty(plan.facultyId, {
-        runType: DigestRunType.AUTOMATED,
-        windowStart: plan.windowStart,
-        windowEnd: plan.windowEnd
-      });
+  for (let index = 0; index < plans.length; index += AUTOMATED_DIGEST_BATCH_SIZE) {
+    const batch = plans.slice(index, index + AUTOMATED_DIGEST_BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map(async (plan) => {
+        try {
+          const result = await sendDigestForFaculty(plan.facultyId, {
+            runType: DigestRunType.AUTOMATED,
+            windowStart: plan.windowStart,
+            windowEnd: plan.windowEnd
+          });
 
-      if (result.sent) {
-        results.push({ facultyId: plan.facultyId, sent: true });
-      } else {
-        results.push({ facultyId: plan.facultyId, sent: false, reason: result.reason });
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown digest error";
-      results.push({ facultyId: plan.facultyId, sent: false, reason: message });
-    }
+          if (result.sent) {
+            return { facultyId: plan.facultyId, sent: true };
+          }
+
+          return { facultyId: plan.facultyId, sent: false, reason: result.reason };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Unknown digest error";
+          return { facultyId: plan.facultyId, sent: false, reason: message };
+        }
+      })
+    );
+
+    results.push(...batchResults);
   }
 
   return {

@@ -20,7 +20,7 @@ This repo is not a monorepo. Use the repository root.
 - Publish directory: `.next`
 - Node version: `20`
 
-The repo-level [netlify.toml](/Users/abhichandel/Documents/Faculty feedback application/netlify.toml) already sets these values.
+The example [netlify.toml](./netlify.toml) shows the matching build settings.
 The repository `build` script itself runs `prisma generate` before `next build`, so a stale generated client does not depend on Netlify UI settings.
 
 ## Environment variables
@@ -63,7 +63,7 @@ or
 
 - `EMAIL_PROVIDER=sendgrid`
 - `SENDGRID_API_KEY=...`
-- `POSTMARK_SENDER_EMAIL=noreply@your-domain.example`
+- `SENDGRID_FROM_EMAIL=noreply@your-domain.example`
 
 ## Database options
 
@@ -146,7 +146,7 @@ That should be done as a separate change, not folded into the initial platform s
 
 - The app already builds as a standard Node/Next.js deployment.
 - The Cloudflare-specific code path is runtime-gated and will not activate on Netlify.
-- The Cloud Run files can stay in the repo; they do not interfere with Netlify.
+- The Cloud Run example guide lives under [../cloud-run/README.md](../cloud-run/README.md).
 
 ## Sources
 
