@@ -69,3 +69,17 @@ Commands:
 - [API Summary](/Users/abhichandel/Documents/Faculty feedback application/docs/API.md)
 - [Netlify reference](/Users/abhichandel/Documents/Faculty feedback application/docs/NETLIFY.md)
 - [Cloud Run reference](/Users/abhichandel/Documents/Faculty feedback application/docs/CLOUD_RUN.md)
+- [Reference materials](/Users/abhichandel/Documents/Faculty feedback application/docs/reference-materials/README.md)
+
+## Repository layout
+
+- `src/`: Next.js pages, route handlers, shared UI components, and application services
+- `prisma/`: schema, migrations, and seed script
+- `docs/`: architecture, deployment guides, API summary, and non-runtime reference materials
+- `tests/`: unit, integration, and end-to-end tests
+- root config files: Next.js, Prisma, Vercel, Cloudflare/OpenNext, Netlify, Playwright, and Vitest
+
+## Notes on organization
+
+- The production deployment path is Vercel, but Cloudflare/OpenNext, Netlify, and Cloud Run files stay in the repo as alternate deployment references.
+- Survey PDFs and similar planning artifacts live under `docs/reference-materials/` so the repo root stays focused on app code and config.
