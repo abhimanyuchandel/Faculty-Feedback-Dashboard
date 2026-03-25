@@ -26,6 +26,7 @@ export type FeedbackFilters = {
   year?: number;
   fromDate?: Date;
   toDate?: Date;
+  hasCompletedPrivateQuestion?: boolean;
 };
 
 function parseDateOnly(value: string): Date | null {
@@ -212,11 +213,13 @@ export async function submitAnonymousFeedback(input: SubmissionInput) {
 }
 
 export async function getFeedbackOverview(filters?: FeedbackFilters) {
-  const where = buildWhere(filters);
+  const baseWhere = buildBaseWhere(filters);
+  const privateSubmissionIds = await findSubmissionIdsWithCompletedPrivateAnswers(baseWhere);
+  const submissionWhere = applyPrivateQuestionFilter(baseWhere, filters, privateSubmissionIds);
 
   const [submissionsForReport, recentSubmissionsRaw, phases, faculty] = await Promise.all([
     prisma.feedbackSubmission.findMany({
-      where,
+      where: submissionWhere,
       orderBy: { submittedAt: "desc" },
       include: {
         faculty: {
@@ -227,11 +230,17 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
         },
         teachingSession: {
           select: { id: true, title: true, location: true }
+        },
+        answers: {
+          select: {
+            includeInDigestSnapshot: true,
+            answerJson: true
+          }
         }
       }
     }),
     prisma.feedbackSubmission.findMany({
-      where,
+      where: submissionWhere,
       orderBy: { submittedAt: "desc" },
       take: 15,
       include: {
@@ -269,6 +278,7 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
       curriculumPhaseId: string;
       curriculumPhaseName: string;
       submissionCount: number;
+      privateSubmissionCount: number;
     }
   >();
 
@@ -276,6 +286,9 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
     const location = submissionLocation(submission);
     const year = submission.submissionDate.getUTCFullYear();
     const phaseKey = submission.curriculumPhase.id;
+    const hasCompletedPrivateQuestion = submission.answers.some(
+      (answer) => !answer.includeInDigestSnapshot && hasMeaningfulAnswer(answer.answerJson)
+    );
 
     byLocationMap.set(location, (byLocationMap.get(location) ?? 0) + 1);
     byYearMap.set(year, (byYearMap.get(year) ?? 0) + 1);
@@ -296,12 +309,16 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
     const existingBreakdown = breakdownMap.get(breakdownKey);
     if (existingBreakdown) {
       existingBreakdown.submissionCount += 1;
+      if (hasCompletedPrivateQuestion) {
+        existingBreakdown.privateSubmissionCount += 1;
+      }
     } else {
       breakdownMap.set(breakdownKey, {
         year,
         curriculumPhaseId: submission.curriculumPhase.id,
         curriculumPhaseName: submission.curriculumPhase.name,
-        submissionCount: 1
+        submissionCount: 1,
+        privateSubmissionCount: hasCompletedPrivateQuestion ? 1 : 0
       });
     }
   }
@@ -338,10 +355,14 @@ export async function getFeedbackOverview(filters?: FeedbackFilters) {
 }
 
 export async function getFeedbackExportRows(filters?: FeedbackFilters) {
-  const where = buildWhere(filters);
+  const baseWhere = buildBaseWhere(filters);
+  const privateSubmissionIds = filters?.hasCompletedPrivateQuestion
+    ? await findSubmissionIdsWithCompletedPrivateAnswers(baseWhere)
+    : new Set<string>();
+  const submissionWhere = applyPrivateQuestionFilter(baseWhere, filters, privateSubmissionIds);
 
   const submissions = await prisma.feedbackSubmission.findMany({
-    where,
+    where: submissionWhere,
     orderBy: [{ submissionDate: "desc" }, { submittedAt: "desc" }],
     include: {
       faculty: {
@@ -380,7 +401,7 @@ export async function getFeedbackExportRows(filters?: FeedbackFilters) {
   });
 }
 
-function buildWhere(filters?: FeedbackFilters): Prisma.FeedbackSubmissionWhereInput {
+function buildBaseWhere(filters?: FeedbackFilters): Prisma.FeedbackSubmissionWhereInput {
   if (!filters) {
     return {};
   }
@@ -414,6 +435,29 @@ function buildWhere(filters?: FeedbackFilters): Prisma.FeedbackSubmissionWhereIn
   }
 
   return { AND: conditions };
+}
+
+function applyPrivateQuestionFilter(
+  baseWhere: Prisma.FeedbackSubmissionWhereInput,
+  filters: FeedbackFilters | undefined,
+  privateSubmissionIds: Set<string>
+): Prisma.FeedbackSubmissionWhereInput {
+  if (!filters?.hasCompletedPrivateQuestion) {
+    return baseWhere;
+  }
+
+  const matchingIds = [...privateSubmissionIds];
+  if (matchingIds.length === 0) {
+    return { id: { in: [] } };
+  }
+
+  if (Object.keys(baseWhere).length === 0) {
+    return { id: { in: matchingIds } };
+  }
+
+  return {
+    AND: [baseWhere, { id: { in: matchingIds } }]
+  };
 }
 
 function buildDateFilter(filters: FeedbackFilters) {
@@ -470,4 +514,58 @@ function answerToText(value: Prisma.JsonValue): string {
   }
 
   return JSON.stringify(value);
+}
+
+async function findSubmissionIdsWithCompletedPrivateAnswers(where: Prisma.FeedbackSubmissionWhereInput) {
+  const answers = await prisma.feedbackAnswer.findMany({
+    where: {
+      includeInDigestSnapshot: false,
+      submission: {
+        is: where
+      }
+    },
+    select: {
+      submissionId: true,
+      answerJson: true
+    }
+  });
+
+  const submissionIds = new Set<string>();
+  for (const answer of answers) {
+    if (hasMeaningfulAnswer(answer.answerJson)) {
+      submissionIds.add(answer.submissionId);
+    }
+  }
+
+  return submissionIds;
+}
+
+function hasMeaningfulAnswer(value: Prisma.JsonValue): boolean {
+  if (value === null) {
+    return false;
+  }
+
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return true;
+  }
+
+  if (Array.isArray(value)) {
+    return value.some((entry) => {
+      if (entry === null) {
+        return false;
+      }
+
+      if (typeof entry === "string") {
+        return entry.trim().length > 0;
+      }
+
+      return true;
+    });
+  }
+
+  return Object.keys(value).length > 0;
 }

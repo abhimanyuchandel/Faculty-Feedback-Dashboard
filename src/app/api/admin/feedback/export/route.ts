@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     const year = yearRaw ? Number(yearRaw) : undefined;
     const fromDate = request.nextUrl.searchParams.get("fromDate");
     const toDate = request.nextUrl.searchParams.get("toDate");
+    const hasCompletedPrivateQuestion = request.nextUrl.searchParams.get("hasCompletedPrivateQuestion") === "true";
 
     const rows = await getFeedbackExportRows({
       facultyId,
@@ -28,7 +29,8 @@ export async function GET(request: NextRequest) {
       location,
       year: Number.isFinite(year) ? year : undefined,
       fromDate: fromDate ? new Date(fromDate) : undefined,
-      toDate: toDate ? new Date(toDate) : undefined
+      toDate: toDate ? new Date(toDate) : undefined,
+      hasCompletedPrivateQuestion
     });
 
     const header = [

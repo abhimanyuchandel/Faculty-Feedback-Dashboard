@@ -12,6 +12,7 @@ type Overview = {
     curriculumPhaseId: string;
     curriculumPhaseName: string;
     submissionCount: number;
+    privateSubmissionCount: number;
   }>;
   filters: {
     faculty: Array<{ id: string; name: string; primaryEmail: string }>;
@@ -39,6 +40,7 @@ export function FeedbackReviewPanel() {
   const [year, setYear] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [hasCompletedPrivateQuestion, setHasCompletedPrivateQuestion] = useState(false);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -47,8 +49,9 @@ export function FeedbackReviewPanel() {
     if (year) params.set("year", year);
     if (fromDate) params.set("fromDate", fromDate);
     if (toDate) params.set("toDate", toDate);
+    if (hasCompletedPrivateQuestion) params.set("hasCompletedPrivateQuestion", "true");
     return params.toString();
-  }, [facultyId, curriculumPhaseId, year, fromDate, toDate]);
+  }, [facultyId, curriculumPhaseId, year, fromDate, toDate, hasCompletedPrivateQuestion]);
 
   const facultyOptions = useMemo(() => {
     const q = facultySearch.trim().toLowerCase();
@@ -144,6 +147,16 @@ export function FeedbackReviewPanel() {
             <label className="label">To date</label>
             <input className="input" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
           </div>
+          <div style={{ display: "flex", alignItems: "end" }}>
+            <label style={{ display: "inline-flex", gap: "0.5rem", alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={hasCompletedPrivateQuestion}
+                onChange={(event) => setHasCompletedPrivateQuestion(event.target.checked)}
+              />
+              <span>Only responses with completed private questions</span>
+            </label>
+          </div>
         </div>
 
         <div style={{ marginTop: "0.8rem", display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
@@ -198,6 +211,7 @@ export function FeedbackReviewPanel() {
                 <th>Phase</th>
                 <th>Calendar Year</th>
                 <th>Total Evaluations</th>
+                <th>Evaluations With Completed Private Questions</th>
               </tr>
             </thead>
             <tbody>
@@ -206,6 +220,7 @@ export function FeedbackReviewPanel() {
                   <td>{row.curriculumPhaseName}</td>
                   <td>{row.year}</td>
                   <td>{row.submissionCount}</td>
+                  <td>{row.privateSubmissionCount}</td>
                 </tr>
               ))}
             </tbody>
